@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DM Team Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Fraunces:ital,wght@0,700;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0d1b2a; --ink2:#1e3a5f; --ink3:#2d5a9e;
+  --sky:#dbeafe; --skylt:#eff6ff;
+  --gold:#f59e0b; --goldlt:#fef3c7; --golddark:#92400e;
+  --jade:#10b981; --jadelt:#d1fae5; --jadedark:#065f46;
+  --rose:#f43f5e; --roselt:#ffe4e6; --rosedark:#9f1239;
+  --violet:#8b5cf6; --violetlt:#ede9fe; --violetdark:#5b21b6;
+  --amber:#f97316; --amberlt:#ffedd5;
+  --mist:#f1f5f9; --border:#e2e8f0; --slate:#64748b;
+  --white:#fff; --bg:#f7f9fc;
+  --sh:0 1px 2px rgba(0,0,0,.06),0 4px 20px rgba(13,27,42,.07);
+  --sh2:0 8px 32px rgba(13,27,42,.14);
+  --r:14px; --r2:10px; --r3:8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px}
+.hidden{display:none!important}
+
+/* ══ LOADER ══ */
+#loader{position:fixed;inset:0;z-index:9999;background:var(--ink);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0}
+.ld-ring{width:80px;height:80px;border-radius:50%;border:3px solid rgba(255,255,255,.1);border-top-color:var(--gold);animation:spin 1s linear infinite;margin-bottom:20px}
+.ld-emoji{position:absolute;font-size:32px;animation:pulse 1s ease-in-out infinite}
+.ld-t{color:#fff;font-size:20px;font-weight:700;letter-spacing:-.5px}
+.ld-s{color:rgba(255,255,255,.45);font-size:12px;margin-top:4px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+/* ══ LOGIN ══ */
+#loginPage{min-height:100vh;display:flex;align-items:stretch;background:var(--ink)}
+.lp-left{flex:1;padding:60px 56px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden}
+.lp-left::before{content:'';position:absolute;top:-120px;left:-120px;width:500px;height:500px;background:radial-gradient(circle,rgba(45,90,158,.4) 0%,transparent 65%);pointer-events:none}
+.lp-left::after{content:'';position:absolute;bottom:-80px;right:60px;width:300px;height:300px;background:radial-gradient(circle,rgba(245,158,11,.12) 0%,transparent 65%);pointer-events:none}
+.lp-brand{display:flex;align-items:center;gap:12px;margin-bottom:56px;position:relative;z-index:1}
+.lp-brand-icon{width:40px;height:40px;background:var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.lp-brand-name{color:#fff;font-weight:700;font-size:16px}
+.lp-headline{font-family:'Fraunces',serif;font-size:52px;line-height:1.1;color:#fff;margin-bottom:20px;position:relative;z-index:1}
+.lp-headline em{color:var(--gold);font-style:italic}
+.lp-desc{color:rgba(255,255,255,.5);font-size:15px;line-height:1.8;margin-bottom:40px;position:relative;z-index:1;max-width:440px}
+.lp-features{display:flex;flex-direction:column;gap:12px;position:relative;z-index:1}
+.lpf{display:flex;align-items:center;gap:12px;color:rgba(255,255,255,.7);font-size:13px}
+.lpf-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0}
+
+.lp-right{width:460px;background:var(--white);display:flex;flex-direction:column;justify-content:center;padding:60px 52px;flex-shrink:0;position:relative}
+.lp-right::before{content:'';position:absolute;top:0;left:0;bottom:0;width:1px;background:linear-gradient(to bottom,transparent,rgba(0,0,0,.08) 30%,rgba(0,0,0,.08) 70%,transparent)}
+.lr-heading{font-family:'Fraunces',serif;font-size:30px;color:var(--ink);margin-bottom:6px}
+.lr-sub{color:var(--slate);font-size:13px;margin-bottom:32px}
+
+/* Role selector */
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:28px}
+.role-card{padding:12px 14px;border:2px solid var(--border);border-radius:var(--r3);cursor:pointer;transition:all .18s;text-align:left;background:#fff}
+.role-card:hover{border-color:var(--ink3);background:var(--skylt)}
+.role-card.active{border-color:var(--ink);background:var(--skylt)}
+.rc-icon{font-size:18px;margin-bottom:4px}
+.rc-name{font-size:12px;font-weight:700;color:var(--ink)}
+.rc-desc{font-size:10px;color:var(--slate);margin-top:1px}
+
+/* Form */
+.fi{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.fi label{font-size:11px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.5px}
+.fi input{padding:12px 14px;border:2px solid var(--border);border-radius:var(--r2);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);outline:none;transition:all .18s;background:#fff}
+.fi input:focus{border-color:var(--ink);box-shadow:0 0 0 3px rgba(13,27,42,.06)}
+.lerr{background:var(--roselt);border:1px solid #fda4af;color:var(--rosedark);border-radius:var(--r3);padding:10px 14px;font-size:13px;margin-bottom:12px;display:none}
+.btn-signin{width:100%;padding:14px;background:var(--ink);color:#fff;border:none;border-radius:var(--r2);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:-.2px;transition:all .18s;margin-top:4px}
+.btn-signin:hover{background:var(--ink2);transform:translateY(-1px);box-shadow:0 6px 20px rgba(13,27,42,.25)}
+.btn-signin:active{transform:translateY(0)}
+.lp-footer{font-size:11px;color:var(--slate);text-align:center;margin-top:20px}
+
+@media(max-width:820px){.lp-left{display:none}.lp-right{width:100%;padding:40px 28px}}
+
+/* ══ APP SHELL ══ */
+#app{display:none;min-height:100vh;flex-direction:column}
+
+/* TOPBAR */
+.tb{height:58px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:14px;position:sticky;top:0;z-index:200;box-shadow:0 1px 0 var(--border)}
+.tb-logo{width:32px;height:32px;background:var(--ink);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.tb-name{font-weight:700;font-size:15px;letter-spacing:-.3px}
+.tb-sep{width:1px;height:20px;background:var(--border)}
+.tb-batch{font-size:12px;color:var(--slate);background:var(--mist);padding:3px 10px;border-radius:50px;border:1px solid var(--border)}
+.tb-r{margin-left:auto;display:flex;align-items:center;gap:10px}
+/* Live clock */
+.tb-clock{font-size:12px;font-weight:600;color:var(--slate);background:var(--mist);padding:5px 12px;border-radius:50px;border:1px solid var(--border);font-variant-numeric:tabular-nums;letter-spacing:.3px}
+.tb-user{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border:1px solid var(--border);border-radius:50px;cursor:default}
+.tb-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
+.tb-uname{font-size:13px;font-weight:600}
+.role-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:50px;text-transform:uppercase;letter-spacing:.3px}
+.rt-intern{background:var(--sky);color:var(--ink2)}
+.rt-internee{background:var(--sky);color:var(--ink2)}
+.rt-teacher{background:var(--jadelt);color:var(--jadedark)}
+.rt-teamlead{background:var(--jadelt);color:var(--jadedark)}
+.rt-staff{background:var(--amberlt);color:#92400e}
+.rt-admin{background:var(--goldlt);color:var(--golddark)}
+.rt-superadmin{background:var(--violetlt);color:var(--violetdark)}
+.btn-out{padding:6px 14px;border:1px solid var(--border);border-radius:var(--r3);background:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:var(--slate);cursor:pointer;transition:all .15s}
+.btn-out:hover{border-color:var(--rose);color:var(--rose)}
+
+/* LAYOUT */
+.app-body{display:flex;flex:1}
+.sidebar{width:216px;background:var(--white);border-right:1px solid var(--border);padding:10px 0;position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto;flex-shrink:0}
+.sb-sec{padding:14px 14px 4px;font-size:9px;font-weight:800;color:var(--slate);letter-spacing:1.5px;text-transform:uppercase}
+.ni{display:flex;align-items:center;gap:10px;padding:8px 10px 8px 14px;cursor:pointer;transition:all .14s;border-left:2.5px solid transparent;margin:1px 6px 1px 0;border-radius:0 8px 8px 0}
+.ni:hover{background:var(--skylt)}
+.ni.active{background:var(--sky);border-left-color:var(--ink);font-weight:600;color:var(--ink)}
+.ni-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.ni-label{font-size:13px}
+.ni-badge{margin-left:auto;background:var(--rose);color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:50px}
+
+.main{flex:1;padding:26px 28px;overflow-x:hidden;max-width:1160px}
+
+/* ══ COMPONENTS ══ */
+.ph{margin-bottom:22px}
+.ph h2{font-family:'Fraunces',serif;font-size:26px;color:var(--ink);margin-bottom:3px;line-height:1.2}
+.ph p{font-size:13px;color:var(--slate)}
+.ph-act{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+
+/* KPI CARDS */
+.kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:22px}
+.kc{background:var(--white);border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh);border:1px solid var(--border);transition:transform .18s,box-shadow .18s;cursor:default;position:relative;overflow:hidden}
+.kc:hover{transform:translateY(-2px);box-shadow:var(--sh2)}
+.kc::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
+.kc-i{font-size:20px;margin-bottom:10px}
+.kc-v{font-size:30px;font-weight:800;line-height:1;margin-bottom:3px;letter-spacing:-.5px}
+.kc-l{font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.kc-s{font-size:11px;color:var(--slate);margin-top:4px}
+
+/* CARD */
+.card{background:var(--white);border-radius:var(--r);padding:22px 24px;box-shadow:var(--sh);border:1px solid var(--border);margin-bottom:18px}
+.ct{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:16px;display:flex;align-items:center;gap:8px;letter-spacing:-.2px}
+.ct-icon{font-size:17px}
+.ct-right{margin-left:auto;display:flex;gap:6px;align-items:center}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+
+/* TABLE */
+.tw{overflow-x:auto;border-radius:var(--r2);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse}
+thead th{background:var(--ink);color:#fff;padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.3px;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:hover{background:var(--skylt)}
+tbody tr:last-child{border:none}
+td{padding:10px 14px;font-size:13px;vertical-align:middle}
+
+/* PILLS */
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:50px;font-size:11px;font-weight:700;white-space:nowrap}
+.p-jade{background:var(--jadelt);color:var(--jadedark)}
+.p-rose{background:var(--roselt);color:var(--rosedark)}
+.p-amber{background:var(--amberlt);color:var(--amber)}
+.p-sky{background:var(--sky);color:var(--ink2)}
+.p-violet{background:var(--violetlt);color:var(--violetdark)}
+.p-mist{background:var(--mist);color:var(--slate)}
+.p-gold{background:var(--goldlt);color:var(--golddark)}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:var(--r2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .16s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;letter-spacing:-.1px}
+.btn-dark{background:var(--ink);color:#fff}
+.btn-dark:hover{background:var(--ink2);transform:translateY(-1px)}
+.btn-jade{background:var(--jade);color:#fff}
+.btn-jade:hover{background:var(--jadedark);transform:translateY(-1px)}
+.btn-rose{background:var(--rose);color:#fff}
+.btn-rose:hover{transform:translateY(-1px)}
+.btn-amber{background:var(--gold);color:var(--ink)}
+.btn-amber:hover{transform:translateY(-1px)}
+.btn-violet{background:var(--violet);color:#fff}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--slate)}
+.btn-ghost:hover{border-color:var(--ink);color:var(--ink)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:var(--r3)}
+
+/* FORMS */
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.fr.s1{grid-template-columns:1fr}
+.fr.s3{grid-template-columns:1fr 1fr 1fr}
+.ff{display:flex;flex-direction:column;gap:5px}
+.ff label{font-size:11px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.4px}
+.ff input,.ff select,.ff textarea{padding:10px 13px;border:2px solid var(--border);border-radius:var(--r2);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);outline:none;transition:border .16s;background:#fff}
+.ff input:focus,.ff select:focus,.ff textarea:focus{border-color:var(--ink)}
+.ff textarea{resize:vertical;min-height:80px}
+
+/* PROGRESS */
+.pb-wrap{background:var(--border);border-radius:50px;height:7px;overflow:hidden}
+.pb{height:100%;border-radius:50px;transition:width .5s ease}
+.pb-label{font-size:11px;color:var(--slate);margin-top:3px}
+
+/* ══ ATTENDANCE CALENDAR ══ */
+.cal-hdr{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.cal-day-name{font-size:9px;font-weight:800;color:var(--slate);text-align:center;letter-spacing:.5px;text-transform:uppercase}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cday{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:600;cursor:pointer;transition:all .14s;border:1.5px solid transparent;position:relative}
+.cday:hover:not(.cd-fut):not(.cd-emp){transform:scale(1.06)}
+.cd-present{background:var(--jadelt);color:var(--jadedark);border-color:#6ee7b7}
+.cd-absent{background:var(--roselt);color:var(--rosedark);border-color:#fda4af}
+.cd-leave{background:var(--goldlt);color:var(--golddark);border-color:#fcd34d}
+.cd-medical{background:var(--violetlt);color:var(--violetdark);border-color:#c4b5fd}
+.cd-fut{background:var(--mist);color:#cbd5e1;cursor:default}
+.cd-emp{cursor:default;background:transparent}
+.cd-today{outline:2.5px solid var(--ink);outline-offset:1.5px}
+.cd-ts{font-size:7px;font-weight:700;margin-top:1px;opacity:.75}
+
+/* ══ CLOCK IN/OUT ══ */
+.clock-card{background:linear-gradient(135deg,var(--ink) 0%,var(--ink2) 100%);border-radius:var(--r);padding:28px;color:#fff;margin-bottom:18px;position:relative;overflow:hidden}
+.clock-card::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(245,158,11,.15) 0%,transparent 65%);border-radius:50%}
+.cc-time{font-family:'Fraunces',serif;font-size:52px;font-weight:700;letter-spacing:-1px;margin-bottom:4px;font-variant-numeric:tabular-nums;position:relative;z-index:1}
+.cc-date{font-size:13px;opacity:.6;margin-bottom:20px;position:relative;z-index:1}
+.cc-status{display:flex;align-items:center;gap:10px;margin-bottom:24px;position:relative;z-index:1}
+.cc-dot{width:10px;height:10px;border-radius:50%;background:var(--jade);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.cc-stat-text{font-size:13px;font-weight:600}
+.cc-elapsed{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.5px;position:relative;z-index:1}
+.cc-elapsed-label{font-size:11px;opacity:.5;margin-bottom:20px;position:relative;z-index:1}
+.cc-btns{display:flex;gap:10px;position:relative;z-index:1;flex-wrap:wrap}
+.btn-clockin{background:var(--gold);color:var(--ink);font-weight:800;padding:12px 24px;border-radius:var(--r2);border:none;font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;transition:all .16s}
+.btn-clockin:hover{background:#e88e09;transform:translateY(-1px)}
+.btn-clockout{background:rgba(255,255,255,.12);color:#fff;font-weight:700;padding:12px 24px;border-radius:var(--r2);border:1.5px solid rgba(255,255,255,.2);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;transition:all .16s}
+.btn-clockout:hover{background:rgba(255,255,255,.2)}
+
+/* SESSION LOG TABLE */
+.session-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.session-row:last-child{border:none}
+.sr-date{font-size:12px;font-weight:700;color:var(--ink);width:70px;flex-shrink:0}
+.sr-in{font-size:12px;color:var(--jadedark);font-weight:600;width:65px}
+.sr-out{font-size:12px;color:var(--rosedark);font-weight:600;width:65px}
+.sr-dur{font-size:13px;font-weight:800;color:var(--ink);width:60px}
+.sr-tasks{font-size:12px;color:var(--slate);flex:1}
+.sr-note{font-size:11px;color:var(--slate);margin-top:2px}
+
+/* REVISION */
+.rev-item{background:var(--mist);border:1px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:10px}
+.rev-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.rev-num{background:var(--violet);color:#fff;font-size:10px;font-weight:800;padding:2px 9px;border-radius:50px}
+.rev-date{font-size:11px;color:var(--slate);margin-left:auto}
+.rev-fb{font-size:13px;color:var(--ink);background:#fff;border-radius:var(--r3);padding:10px 13px;border:1px solid var(--border);line-height:1.6}
+.rev-file{display:flex;align-items:center;gap:8px;padding:7px 11px;background:#fff;border:1px solid var(--border);border-radius:var(--r3);font-size:12px;margin-top:6px}
+
+/* UPLOAD */
+.dz{border:2px dashed var(--border);border-radius:var(--r);padding:28px;text-align:center;cursor:pointer;transition:all .16s;background:var(--skylt)}
+.dz:hover,.dz.drag{border-color:var(--ink);background:var(--sky)}
+.dz-icon{font-size:32px;margin-bottom:8px}
+.dz-text{font-size:13px;color:var(--slate)}
+.dz-text strong{color:var(--ink)}
+
+/* WARN BANNER */
+.wbanner{border-radius:var(--r2);padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.wbanner-rose{background:linear-gradient(90deg,var(--roselt),#fff5f5);border:1px solid #fda4af}
+.wbanner-violet{background:linear-gradient(90deg,var(--violetlt),#faf8ff);border:1px solid #c4b5fd}
+.wbanner-amber{background:linear-gradient(90deg,var(--goldlt),#fffef0);border:1px solid #fcd34d}
+
+/* DRIVE INFO */
+.drive-strip{background:linear-gradient(90deg,var(--jadedark),var(--jade));border-radius:var(--r2);padding:12px 18px;display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.ds-text{font-size:13px;color:#fff;font-weight:500;flex:1}
+.ds-link{font-size:12px;font-weight:700;color:#6ee7b7;text-decoration:none;display:flex;align-items:center;gap:4px;white-space:nowrap}
+
+/* CHART BAR */
+.cbar{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.cbar-name{font-size:12px;width:95px;flex-shrink:0;color:var(--slate);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cbar-track{flex:1;background:var(--border);border-radius:50px;height:9px;overflow:hidden}
+.cbar-fill{height:100%;border-radius:50px;transition:width .6s ease}
+.cbar-val{font-size:12px;font-weight:800;color:var(--ink);width:30px;text-align:right;flex-shrink:0}
+
+/* MODAL */
+.mbg{position:fixed;inset:0;background:rgba(13,27,42,.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)}
+.modal{background:#fff;border-radius:18px;padding:28px 30px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;box-shadow:var(--sh2);animation:mIn .22s ease}
+@keyframes mIn{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+.mhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.mtit{font-family:'Fraunces',serif;font-size:20px;color:var(--ink)}
+.mclose{width:30px;height:30px;border-radius:var(--r3);border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .14s}
+.mclose:hover{background:var(--roselt);border-color:var(--rose);color:var(--rose)}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;right:20px;padding:12px 18px;border-radius:12px;font-size:13px;font-weight:600;color:#fff;z-index:9999;box-shadow:var(--sh2);display:none;max-width:320px;animation:tin .25s ease}
+@keyframes tin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* GRADE CIRCLE */
+.gc{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0}
+
+/* ATTENDANCE TIMESTAMP BADGE */
+.ts-badge{display:inline-flex;align-items:center;gap:5px;background:var(--mist);border:1px solid var(--border);border-radius:50px;padding:3px 10px;font-size:11px;font-weight:600;color:var(--slate)}
+.ts-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+
+@media(max-width:900px){.g2,.g3{grid-template-columns:1fr}.sidebar{display:none;position:fixed;top:58px;left:0;bottom:0;z-index:199;width:240px;box-shadow:4px 0 20px rgba(0,0,0,.15)}.sidebar.open{display:block}.main{padding:16px}}
+@media(max-width:580px){.fr,.fr.s3{grid-template-columns:1fr}.kg{grid-template-columns:1fr 1fr}}
+.mb-toggle{display:none;background:none;border:none;font-size:22px;cursor:pointer;padding:4px 8px;color:var(--ink)}
+@media(max-width:900px){.mb-toggle{display:block}}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:198}
+.overlay.show{display:block}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div style="position:relative;display:flex;align-items:center;justify-content:center;width:80px;height:80px;margin-bottom:20px">
+    <div class="ld-ring"></div>
+    <div class="ld-emoji">🎬</div>
+  </div>
+  <div class="ld-t">DM Team Portal</div>
+  <div class="ld-s">Initializing secure session…</div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginPage" class="hidden">
+  <div class="lp-left">
+    <div class="lp-brand">
+      <img src="https://designmuster.com/wp-content/uploads/2025/05/dm-red-png-1.png" alt="Design Muster" style="height:32px;filter:brightness(0) invert(1)" onerror="this.outerHTML='<div style=\'color:#fff;font-weight:800;font-size:18px;letter-spacing:1px\'>DESIGN MUSTER</div>'">
+    </div>
+    <div class="lp-headline">Team<br>Management<br><em>Portal</em></div>
+    <div class="lp-desc">Complete team management system — tasks, attendance with timestamps, working hours, file uploads, Google Drive integration and more.</div>
+    <div class="lp-features">
+      <div class="lpf"><div class="lpf-dot"></div>Clock In / Clock Out with live timer</div>
+      <div class="lpf"><div class="lpf-dot"></div>Attendance with exact timestamps</div>
+      <div class="lpf"><div class="lpf-dot"></div>Task submissions with revision tracking</div>
+      <div class="lpf"><div class="lpf-dot"></div>Google Drive auto-file organization</div>
+      <div class="lpf"><div class="lpf-dot"></div>5 access levels — Admin, Super Admin, Team Lead, Staff, Internee</div>
+    </div>
+  </div>
+  <div class="lp-right">
+    <img src="https://designmuster.com/wp-content/uploads/2025/05/dm-red-png-1.png" alt="Design Muster" style="height:36px;margin-bottom:28px;display:block" onerror="this.style.display='none'">
+    <div class="lr-heading">Welcome back</div>
+    <div class="lr-sub">Enter your email and password to continue</div>
+    <div class="lerr" id="lerr"></div>
+    <div class="fi"><label>Email</label><input type="email" id="lemail" placeholder="email@designmuster.com"></div>
+    <div class="fi"><label>Password</label><input type="password" id="lpass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn-signin" onclick="doLogin()">Sign In →</button>
+    <div class="lp-footer">Demo: ahmed@intern.com / ahmed123 &nbsp;·&nbsp; super@admin.com / super123</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="tb">
+    <button class="mb-toggle" onclick="toggleSidebar()" title="Menu">☰</button>
+    <img src="https://designmuster.com/wp-content/uploads/2025/05/dm-red-png-1.png" alt="DM" style="height:26px;flex-shrink:0" onerror="this.outerHTML='<span style=\'font-weight:800;font-size:15px;color:#1e3a5f\'>DM</span>'">
+    <div class="tb-sep"></div>
+    <div class="tb-name">Team Portal</div>
+    <div class="tb-r">
+      <div class="tb-clock" id="liveClock">--:--:--</div>
+      <div class="tb-user">
+        <div class="tb-av" id="topAv">A</div>
+        <div>
+          <div class="tb-uname" id="topName">—</div>
+          <span class="role-tag" id="topRole">internee</span>
+        </div>
+      </div>
+      <button class="btn-out" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+  <div class="app-body">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="main" id="mc"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="mbg hidden" id="mbg"><div class="modal" id="mcon"></div></div>
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════
+const CFG = {
+  API: "YOUR_APPS_SCRIPT_URL",
+  DEMO: true,
+  DRIVE_FOLDER: "1iVKDVT6q6IbJWj6yj_fXx87aQOao46eQ",
+  DRIVE_URL: "https://drive.google.com/drive/folders/1iVKDVT6q6IbJWj6yj_fXx87aQOao46eQ",
+};
+
+// ════════════════════════════════════════════════════════
+// DEMO DATA
+// ════════════════════════════════════════════════════════
+const DB = {
+  users:[
+    {id:"u1",name:"Ahmed Ali",     email:"ahmed@intern.com",   pass:"ahmed123",   role:"internee",  designation:"Content Writer",    iid:"i1"},
+    {id:"u2",name:"Sara Khan",     email:"sara@intern.com",    pass:"sara123",    role:"internee",  designation:"Video Editor",       iid:"i2"},
+    {id:"u3",name:"Ali Raza",      email:"ali@intern.com",     pass:"ali123",     role:"internee",  designation:"AI Graphics Designer",iid:"i3"},
+    {id:"u4",name:"Ms. Fatima",    email:"fatima@team.com",    pass:"lead123",    role:"teamlead",  designation:"Creative Team Lead"},
+    {id:"u5",name:"Bilal Ahmed",   email:"bilal@team.com",     pass:"staff123",   role:"staff",     designation:"3D Visualization Artist"},
+    {id:"u6",name:"Admin Khan",    email:"admin@dm.com",       pass:"admin123",   role:"admin",     designation:"Operations Manager"},
+    {id:"u7",name:"Super Admin",   email:"super@admin.com",    pass:"super123",   role:"superadmin",designation:"Director"},
+  ],
+  members:[
+    {id:"i1",name:"Ahmed Ali",    role:"internee", designation:"Content Writer",         pts:85,grade:"A", att:87,warn:0,joined:"01 Jun",batch:"Batch 1"},
+    {id:"i2",name:"Sara Khan",    role:"internee", designation:"Video Editor",            pts:72,grade:"B", att:75,warn:1,joined:"01 Jun",batch:"Batch 1"},
+    {id:"i3",name:"Ali Raza",     role:"internee", designation:"AI Graphics Designer",    pts:94,grade:"A+",att:100,warn:0,joined:"01 Jun",batch:"Batch 1"},
+    {id:"i4",name:"Fatima Naz",   role:"internee", designation:"SEO Manager",             pts:58,grade:"C", att:63,warn:2,joined:"01 Jun",batch:"Batch 1"},
+    {id:"i5",name:"Umar Farooq",  role:"internee", designation:"Social Media Manager",    pts:78,grade:"B", att:88,warn:0,joined:"01 Jun",batch:"Batch 1"},
+    {id:"s1",name:"Ms. Fatima",   role:"teamlead", designation:"Creative Team Lead",      pts:95,grade:"A+",att:96,warn:0,joined:"15 Jan",batch:"Core Team"},
+    {id:"s2",name:"Bilal Ahmed",  role:"staff",    designation:"3D Visualization Artist", pts:88,grade:"A", att:92,warn:0,joined:"20 Feb",batch:"Core Team"},
+  ],
+  tasks:[
+    {id:"t1",iid:"i1",vid:"Project #1",title:"Full Script — Top 10 AI Tools",          pri:"High",  st:"Completed",   dl:"11 Jun",sub:"10 Jun 14:32",score:9, rev:1,fb:"Excellent hook! Minor CTA tweak needed.",      path:"Ahmed Ali/Project #1/script_v1.docx"},
+    {id:"t2",iid:"i1",vid:"Project #2",title:"Script — How to Make $500 Online",       pri:"High",  st:"In Progress", dl:"18 Jun",sub:"",           score:"",rev:0,fb:"",path:""},
+    {id:"t3",iid:"i2",vid:"Project #1",title:"Final Video Edit — 8 min voiceover",     pri:"High",  st:"Revision",    dl:"12 Jun",sub:"12 Jun 18:05",score:"",rev:2,fb:"Audio sync off at 2:34. Fix & resubmit.",      path:"Sara Khan/Project #1/edit_v2.mp4"},
+    {id:"t4",iid:"i3",vid:"Project #1",title:"3 Thumbnails + Channel Banner",          pri:"High",  st:"Completed",   dl:"12 Jun",sub:"11 Jun 11:20",score:10,rev:1,fb:"Perfect! Publishing all 3.",                   path:"Ali Raza/Project #1/thumbs_v1.zip"},
+    {id:"t5",iid:"i4",vid:"Project #1",title:"SEO Pack — Title + Desc + 15 Tags",      pri:"Medium",st:"Pending",     dl:"13 Jun",sub:"",           score:"",rev:0,fb:"",path:""},
+    {id:"t6",iid:"i5",vid:"Project #1",title:"3 Shorts + 1 Community Post",            pri:"High",  st:"Review",      dl:"13 Jun",sub:"13 Jun 09:45",score:"",rev:1,fb:"",path:"Umar Farooq/Project #1/shorts_v1.zip"},
+  ],
+  att:{
+    i1:{"01/06":{st:"Present",ts:"01/06 09:02:14",by:"self"},"02/06":{st:"Present",ts:"02/06 08:58:33",by:"self"},"03/06":{st:"Present",ts:"03/06 09:11:05",by:"self"},"04/06":{st:"Absent",ts:"04/06 23:59:00",by:"auto"},"05/06":{st:"Present",ts:"05/06 09:05:22",by:"self"},"06/06":{st:"Present",ts:"06/06 08:47:18",by:"self"},"09/06":{st:"Present",ts:"09/06 09:03:44",by:"self"},"10/06":{st:"Present",ts:"10/06 09:00:11",by:"self"},"11/06":{st:"Present",ts:"11/06 09:07:38",by:"self"},"12/06":{st:"Present",ts:"12/06 08:55:20",by:"self"},"13/06":{st:"Present",ts:"13/06 09:01:47",by:"self"}},
+    i2:{"01/06":{st:"Present",ts:"01/06 09:14:22",by:"self"},"02/06":{st:"Absent",ts:"02/06 23:59:00",by:"auto"},"03/06":{st:"Present",ts:"03/06 10:02:55",by:"self"},"04/06":{st:"Leave",ts:"04/06 08:30:00",by:"self"},"05/06":{st:"Present",ts:"05/06 09:20:10",by:"self"},"09/06":{st:"Present",ts:"09/06 09:00:03",by:"self"},"10/06":{st:"Absent",ts:"10/06 23:59:00",by:"auto"},"11/06":{st:"Present",ts:"11/06 09:15:44",by:"self"}},
+    i3:{"01/06":{st:"Present",ts:"01/06 08:45:00",by:"self"},"02/06":{st:"Present",ts:"02/06 08:50:00",by:"self"},"03/06":{st:"Present",ts:"03/06 08:55:00",by:"self"},"04/06":{st:"Present",ts:"04/06 09:00:00",by:"self"},"05/06":{st:"Present",ts:"05/06 09:05:00",by:"self"},"09/06":{st:"Present",ts:"09/06 08:58:00",by:"self"},"10/06":{st:"Present",ts:"10/06 09:02:00",by:"self"},"11/06":{st:"Present",ts:"11/06 09:10:00",by:"self"}},
+  },
+  sessions:{
+    i1:[
+      {date:"09/06",day:"Mon",cin:"09:03",cout:"16:30",dur:"7h 27m",tasks:"Script research, outline",  note:"Completed 70% of script"},
+      {date:"10/06",day:"Tue",cin:"09:00",cout:"15:32",dur:"6h 32m",tasks:"Script writing, revision",  note:"Submitted Project #1 script ✅"},
+      {date:"11/06",day:"Wed",cin:"09:07",cout:"17:10",dur:"8h 03m",tasks:"Project #2 research",       note:"New outline started"},
+      {date:"12/06",day:"Thu",cin:"08:55",cout:"14:28",dur:"5h 33m",tasks:"Script drafting V2",        note:"50% done"},
+      {date:"13/06",day:"Fri",cin:"09:01",cout:"14:05",dur:"5h 04m",tasks:"Applied feedback",          note:"Corrections complete"},
+    ]
+  },
+  warnings:[
+    {iid:"i2",num:1,reason:"Late submission — Project #1 edit 2 days overdue", date:"12/06 14:22",by:"Ms. Fatima"},
+    {iid:"i4",num:1,reason:"3 consecutive unexplained absences",                date:"08/06 10:05",by:"Admin Khan"},
+    {iid:"i4",num:2,reason:"Task not submitted after 2nd reminder",             date:"11/06 16:30",by:"Admin Khan"},
+  ],
+};
+
+// ════════════════════════════════════════════════════════
+// CLOCK STATE
+// ════════════════════════════════════════════════════════
+let clockState = JSON.parse(sessionStorage.getItem('clockState')||'{}');
+// {iid, status:"in"|"out", cinTime:timestamp, elapsed:seconds}
+
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+let CU = null;
+// role auto-detected from login
+let clockInterval = null;
+let liveClockInterval = null;
+
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+window.onload = () => {
+  setTimeout(()=>{
+    document.getElementById('loader').style.opacity='0';
+    document.getElementById('loader').style.transition='opacity .4s';
+    setTimeout(()=>{
+      document.getElementById('loader').classList.add('hidden');
+      const s = sessionStorage.getItem('dm_cu');
+      if(s){ CU=JSON.parse(s); launch(); }
+      else show('loginPage');
+    },400);
+  },1800);
+};
+
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('overlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('show');
+}
+
+function show(id){ document.getElementById(id).classList.remove('hidden'); }
+function hide(id){ document.getElementById(id).classList.add('hidden'); }
+function R(h){ document.getElementById('mc').innerHTML=h; }
+
+// Live clock in topbar
+function startLiveClock(){
+  liveClockInterval && clearInterval(liveClockInterval);
+  const el = document.getElementById('liveClock');
+  const tick=()=>{ el.textContent=new Date().toLocaleTimeString('en-GB',{hour12:false}); };
+  tick(); liveClockInterval=setInterval(tick,1000);
+}
+
+// ════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════
+function doLogin(){
+  const email=document.getElementById('lemail').value.trim().toLowerCase();
+  const pass =document.getElementById('lpass').value;
+  const err  =document.getElementById('lerr');
+  err.style.display='none';
+  const user = DB.users.find(u=>u.email===email && u.pass===pass);
+  if(!user){ err.textContent='❌ Wrong email or password.'; err.style.display='block'; return; }
+  CU=user; sessionStorage.setItem('dm_cu',JSON.stringify(CU));
+  hide('loginPage'); launch();
+}
+
+function doLogout(){
+  sessionStorage.removeItem('dm_cu');
+  clockInterval && clearInterval(clockInterval);
+  liveClockInterval && clearInterval(liveClockInterval);
+  CU=null;
+  document.getElementById('app').style.display='none';
+  show('loginPage');
+  document.getElementById('lemail').value='';
+  document.getElementById('lpass').value='';
+}
+
+// ════════════════════════════════════════════════════════
+// APP
+// ════════════════════════════════════════════════════════
+const AV_COLORS={
+  internee:'linear-gradient(135deg,#1e3a5f,#2d5a9e)',
+  intern:'linear-gradient(135deg,#1e3a5f,#2d5a9e)',
+  teamlead:'linear-gradient(135deg,#065f46,#10b981)',
+  staff:'linear-gradient(135deg,#92400e,#f97316)',
+  admin:'linear-gradient(135deg,#92400e,#f59e0b)',
+  superadmin:'linear-gradient(135deg,#5b21b6,#8b5cf6)'
+};
+
+const ROLE_LABELS={internee:'Internee',teamlead:'Team Lead',staff:'Staff',admin:'Admin',superadmin:'Super Admin'};
+const isInternee=r=>r==='internee'||r==='intern';
+const isManagement=r=>['teamlead','staff','admin','superadmin'].includes(r);
+
+function launch(){
+  document.getElementById('app').style.display='flex';
+  document.getElementById('topAv').textContent=(CU.name||'?')[0].toUpperCase();
+  document.getElementById('topAv').style.background=AV_COLORS[CU.role]||AV_COLORS.internee;
+  document.getElementById('topName').textContent=CU.name;
+  const rt=document.getElementById('topRole');
+  rt.textContent=ROLE_LABELS[CU.role]||CU.role;
+  rt.className='role-tag rt-'+CU.role;
+  startLiveClock();
+  buildSidebar();
+  nav('dashboard');
+}
+
+const MENUS={
+  internee:[{sec:'MY PORTAL',items:[
+    {i:'📊',l:'Dashboard',    p:'dashboard'},
+    {i:'✅',l:'My Tasks',     p:'tasks'},
+    {i:'📅',l:'Attendance',   p:'attendance'},
+    {i:'⏱️',l:'Working Hours', p:'hours'},
+    {i:'📁',l:'My Files',     p:'files'},
+    {i:'📈',l:'My Progress',  p:'progress'},
+    {i:'❓',l:'Help',         p:'help'},
+  ]}],
+  teamlead:[{sec:'TEAM LEAD',items:[
+    {i:'📊',l:'Dashboard',    p:'dashboard'},
+    {i:'👥',l:'My Team',      p:'interns'},
+    {i:'✅',l:'Tasks',         p:'tasks'},
+    {i:'📅',l:'Attendance',   p:'attendance'},
+    {i:'📁',l:'Submissions',  p:'files'},
+    {i:'📈',l:'Reports',      p:'progress'},
+  ]}],
+  staff:[{sec:'STAFF',items:[
+    {i:'📊',l:'Dashboard',    p:'dashboard'},
+    {i:'✅',l:'My Tasks',     p:'tasks'},
+    {i:'📅',l:'Attendance',   p:'attendance'},
+    {i:'⏱️',l:'Working Hours', p:'hours'},
+    {i:'📁',l:'Files',        p:'files'},
+    {i:'📈',l:'My Progress',  p:'progress'},
+  ]}],
+  admin:[{sec:'MANAGEMENT',items:[
+    {i:'📊',l:'Dashboard',    p:'dashboard'},
+    {i:'👥',l:'All Members',  p:'interns'},
+    {i:'✅',l:'All Tasks',     p:'tasks'},
+    {i:'📅',l:'Attendance',   p:'attendance'},
+    {i:'📁',l:'Drive Files',  p:'files'},
+    {i:'🏆',l:'Leaderboard',  p:'leaderboard'},
+    {i:'📈',l:'Reports',      p:'progress'},
+    {i:'⚠️',l:'Warnings',     p:'warnings',badge:2},
+  ]}],
+  superadmin:[{sec:'SYSTEM',items:[
+    {i:'📊',l:'Dashboard',    p:'dashboard'},
+    {i:'👥',l:'All Members',  p:'interns'},
+    {i:'✅',l:'All Tasks',     p:'tasks'},
+    {i:'📅',l:'Attendance',   p:'attendance'},
+    {i:'📁',l:'Drive Files',  p:'files'},
+    {i:'🏆',l:'Leaderboard',  p:'leaderboard'},
+    {i:'📈',l:'Reports',      p:'progress'},
+    {i:'⚠️',l:'Warnings',     p:'warnings',badge:2},
+    {i:'🔧',l:'Users',        p:'users'},
+    {i:'⚙️',l:'Settings',     p:'settings'},
+  ]}],
+};
+
+function buildSidebar(){
+  const m=MENUS[CU.role]||MENUS.internee;
+  document.getElementById('sidebar').innerHTML=m.map(s=>`
+    <div class="sb-sec">${s.sec}</div>
+    ${s.items.map(it=>`
+      <div class="ni" onclick="nav('${it.p}')" data-p="${it.p}">
+        <span class="ni-icon">${it.i}</span>
+        <span class="ni-label">${it.l}</span>
+        ${it.badge?`<span class="ni-badge">${it.badge}</span>`:''}
+      </div>`).join('')}`).join('');
+}
+
+function nav(p){
+  document.querySelectorAll('.ni').forEach(e=>e.classList.toggle('active',e.dataset.p===p));
+  const pages={dashboard,tasks,attendance,hours,files,progress,interns,leaderboard,warnings,users,settings,help};
+  if(pages[p]) pages[p]();
+}
+
+// ════════════════════════════════════════════════════════
+// PAGES
+// ════════════════════════════════════════════════════════
+
+/* ── DASHBOARD ── */
+function dashboard(){ isInternee(CU.role)||CU.role==='staff'?dashI():dashA(); }
+
+function dashI(){
+  const me=DB.members.find(i=>i.id===CU.iid)||DB.members[0];
+  const mt=DB.tasks.filter(t=>t.iid===me.id);
+  const done=mt.filter(t=>t.st==='Completed').length;
+  const rev=mt.filter(t=>t.st==='Revision').length;
+  const todayK=fmtDateKey(new Date());
+  const todayAtt=DB.att[me.id]?.[todayK];
+  const cs=clockState[me.id];
+  const isClockedIn=cs&&cs.status==='in';
+
+  R(`
+    <div class="ph">
+      <h2>Hello, ${me.name.split(' ')[0]}! 👋</h2>
+      <p>${new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</p>
+    </div>
+
+    ${!todayAtt?`<div class="wbanner wbanner-rose">
+      <span style="font-size:22px">📅</span>
+      <div style="flex:1"><div style="font-weight:700;color:var(--rosedark)">Mark today's attendance!</div>
+      <div style="font-size:12px;color:var(--slate)">Don't forget before end of day.</div></div>
+      <button class="btn btn-jade btn-sm" onclick="quickAtt('${me.id}','${todayK}')">✅ Mark Present</button>
+    </div>`:''}
+
+    ${rev>0?`<div class="wbanner wbanner-violet">
+      <span style="font-size:22px">🔄</span>
+      <div style="flex:1"><div style="font-weight:700;color:var(--violetdark)">${rev} task(s) need revision</div>
+      <div style="font-size:12px;color:var(--slate)">Check teacher feedback and re-submit.</div></div>
+      <button class="btn btn-sm btn-violet" onclick="nav('tasks')">View →</button>
+    </div>`:''}
+
+    ${!isClockedIn?`<div class="wbanner wbanner-amber">
+      <span style="font-size:22px">⏱️</span>
+      <div style="flex:1"><div style="font-weight:700;color:var(--golddark)">You're not clocked in</div>
+      <div style="font-size:12px;color:var(--slate)">Go to Working Hours to clock in for today.</div></div>
+      <button class="btn btn-sm btn-amber" onclick="nav('hours')">Clock In →</button>
+    </div>`:`<div class="wbanner" style="background:linear-gradient(90deg,var(--jadelt),#f0fdf9);border:1px solid #6ee7b7">
+      <span style="font-size:22px">🟢</span>
+      <div style="flex:1"><div style="font-weight:700;color:var(--jadedark)">Currently clocked in</div>
+      <div style="font-size:12px;color:var(--slate)">Session started at ${cs.cinTime} — <strong id="dashElapsed">calculating...</strong></div></div>
+      <button class="btn btn-sm btn-ghost" onclick="nav('hours')">View →</button>
+    </div>`}
+
+    <div class="kg">
+      ${kc('🏅',me.pts,'Points',`Grade: <strong>${me.grade}</strong>`,'var(--ink)')}
+      ${kc('✅',done,'Completed',`${mt.length} total`,'')}
+      ${kc('📅',me.att+'%','Attendance',me.att>=80?'✅ Good':'⚠️ Low',me.att>=80?'var(--jade)':'var(--rose)')}
+      ${kc('🔄',rev,'Revisions','Pending','var(--violet)')}
+      ${kc('⚠️',me.warn,'Warnings','Max 3','var(--rose)')}
+    </div>
+
+    <div class="drive-strip">
+      <span style="font-size:20px">☁️</span>
+      <div class="ds-text">Google Drive connected — files auto-organize by project & revision number</div>
+      <a href="${CFG.DRIVE_URL}" target="_blank" class="ds-link">📁 My Folder →</a>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <div class="ct"><span class="ct-icon">📊</span>Progress</div>
+        ${pr2('Tasks done',`${done}/${mt.length}`,mt.length?Math.round(done/mt.length*100):0)}
+        ${pr2('Attendance',`${me.att}%`,me.att,me.att>=80?'var(--jade)':'var(--rose)')}
+        ${pr2('Points',`${me.pts}/100`,me.pts)}
+        ${pr2('Certificate',me.att>=75&&me.pts>=60?'Eligible ✅':'Not yet',me.att>=75&&me.pts>=60?100:0,me.att>=75&&me.pts>=60?'var(--jade)':'var(--slate)')}
+      </div>
+      <div class="card">
+        <div class="ct"><span class="ct-icon">📋</span>Recent Tasks</div>
+        ${mt.slice(0,4).map(t=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:13px">${t.vid}</div>
+              <div style="font-size:11px;color:var(--slate);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
+            </div>
+            <div style="margin-left:8px">${sp(t.st)}</div>
+          </div>`).join('')}
+        <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px" onclick="nav('tasks')">All Tasks →</button>
+      </div>
+    </div>
+  `);
+
+  // Update dashboard elapsed if clocked in
+  if(isClockedIn){
+    const el=document.getElementById('dashElapsed');
+    if(el){
+      const update=()=>{
+        const diff=Math.floor((Date.now()-cs.cinStamp)/1000);
+        el.textContent=fmtElapsed(diff);
+      };
+      update();
+      setInterval(update,1000);
+    }
+  }
+}
+
+function dashA(){
+  const tot=DB.members.length;
+  const avgA=Math.round(DB.members.reduce((s,i)=>s+i.att,0)/tot);
+  const avgP=Math.round(DB.members.reduce((s,i)=>s+i.pts,0)/tot);
+  const roleLabel=ROLE_LABELS[CU.role]||CU.role;
+  R(`
+    <div class="ph">
+      <h2>${CU.role==='superadmin'?'👑':'⚙️'} ${roleLabel} Dashboard</h2>
+      <p>${new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</p>
+    </div>
+    <div class="kg">
+      ${kc('👥',tot,'Team Members','Active','')}
+      ${kc('✅',DB.tasks.filter(t=>t.st==='Completed').length,'Tasks Done',`${DB.tasks.length} total`,'')}
+      ${kc('📅',avgA+'%','Avg Attendance',`${DB.members.filter(i=>i.att>=80).length}/${tot} good`,avgA>=80?'var(--jade)':'var(--rose)')}
+      ${kc('🏅',avgP,'Avg Points','Out of 100','')}
+      ${kc('🔄',DB.tasks.filter(t=>t.st==='Revision').length,'Revisions','Pending','var(--violet)')}
+      ${kc('⚠️',DB.warnings.length,'Warnings','Active','var(--rose)')}
+    </div>
+    <div class="drive-strip">
+      <span style="font-size:20px">☁️</span>
+      <div class="ds-text">Google Drive connected — all files auto-organized by member & project</div>
+      <a href="${CFG.DRIVE_URL}" target="_blank" class="ds-link">📁 Open Drive →</a>
+    </div>
+    <div class="g2" style="margin-bottom:18px">
+      <div class="card">
+        <div class="ct"><span class="ct-icon">🏅</span>Points</div>
+        ${DB.members.map(i=>`<div class="cbar">
+          <div class="cbar-name">${i.name.split(' ')[0]}</div>
+          <div class="cbar-track"><div class="cbar-fill" style="width:${i.pts}%;background:${i.pts>=80?'var(--jade)':i.pts>=60?'var(--gold)':'var(--rose)'}"></div></div>
+          <div class="cbar-val">${i.pts}</div>
+        </div>`).join('')}
+      </div>
+      <div class="card">
+        <div class="ct"><span class="ct-icon">📅</span>Attendance</div>
+        ${DB.members.map(i=>`<div class="cbar">
+          <div class="cbar-name">${i.name.split(' ')[0]}</div>
+          <div class="cbar-track"><div class="cbar-fill" style="width:${i.att}%;background:${i.att>=80?'var(--jade)':'var(--rose)'}"></div></div>
+          <div class="cbar-val">${i.att}%</div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="card" style="padding:0">
+      <div style="padding:18px 20px 0"><div class="ct"><span class="ct-icon">👥</span>All Members
+        <div class="ct-right"><button class="btn btn-dark btn-sm" onclick="nav('interns')">View All →</button></div>
+      </div></div>
+      <div class="tw"><table>
+        <thead><tr><th>#</th><th>Name</th><th>Role</th><th>Designation</th><th>Points</th><th>Grade</th><th>Att%</th></tr></thead>
+        <tbody>${DB.members.map((i,x)=>`<tr>
+          <td style="color:var(--slate)">${x+1}</td>
+          <td><strong>${i.name}</strong></td>
+          <td><span class="role-tag rt-${i.role}" style="font-size:10px">${ROLE_LABELS[i.role]||i.role}</span></td>
+          <td><span class="pill p-sky" style="font-size:10px">${i.designation}</span></td>
+          <td><strong>${i.pts}</strong></td>
+          <td>${gp(i.grade)}</td>
+          <td>${i.att>=80?`<span class="pill p-jade">${i.att}%</span>`:`<span class="pill p-rose">${i.att}%</span>`}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>
+  `);
+}
+
+/* ── TASKS ── */
+function tasks(){
+  const isI=isInternee(CU.role)||CU.role==='staff';
+  const mt=isI?DB.tasks.filter(t=>t.iid===CU.iid):DB.tasks;
+  R(`
+    <div class="ph">
+      <h2>${isI?'📋 My Tasks':'📋 Task Management'}</h2>
+      <p>${isI?'Assigned tasks, submissions & revisions':'Assign, review and grade all tasks'}</p>
+      ${!isI?`<div class="ph-act"><button class="btn btn-dark" onclick="mAssign()">➕ Assign Task</button></div>`:''}
+    </div>
+    <div class="card" style="padding:12px 20px;margin-bottom:16px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${['All','Pending','In Progress','Review','Completed','Revision'].map(s=>`
+          <button class="btn btn-ghost btn-sm" onclick="ftasks('${s}')">${s}</button>`).join('')}
+      </div>
+    </div>
+    <div class="card" style="padding:0">
+      <div class="tw"><table id="tbl">
+        <thead><tr>
+          <th>Video</th>${!isI?'<th>Member</th>':''}
+          <th>Task</th><th>Pri</th><th>Status</th>
+          <th>Deadline</th><th>Rev.No</th><th>Score</th>
+          <th>Submitted</th><th>Actions</th>
+        </tr></thead>
+        <tbody>${mt.map(t=>{
+          const intern=DB.members.find(i=>i.id===t.iid);
+          return`<tr>
+            <td><strong style="font-size:12px">${t.vid}</strong></td>
+            ${!isI?`<td>${intern?.name||''}</td>`:''}
+            <td style="max-width:190px">
+              <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${t.title}">${t.title}</div>
+              ${t.fb?`<div style="font-size:10px;color:var(--slate);margin-top:2px">💬 ${t.fb.substring(0,44)}…</div>`:''}
+            </td>
+            <td>${pp(t.pri)}</td>
+            <td>${sp(t.st)}</td>
+            <td style="font-size:12px;color:var(--slate)">${t.dl}</td>
+            <td><span class="pill p-violet" style="font-size:10px">Rev.${t.rev}</span></td>
+            <td style="font-weight:700">${t.score||'—'}${t.score?'<span style="font-size:10px;color:var(--slate)">/10</span>':''}</td>
+            <td>
+              ${t.sub?`<div class="ts-badge"><div class="ts-dot" style="background:var(--jade)"></div>${t.sub}</div>`:`<span style="font-size:11px;color:var(--slate)">—</span>`}
+            </td>
+            <td>
+              <div style="display:flex;gap:4px;flex-wrap:wrap">
+                ${isI&&['Pending','In Progress','Revision'].includes(t.st)?`<button class="btn btn-dark btn-sm" onclick="mSubmit('${t.id}')">📤 Submit</button>`:''}
+                ${!isI&&t.sub?`<button class="btn btn-amber btn-sm" onclick="mGrade('${t.id}')">✏️ Grade</button>`:''}
+                ${t.path?`<button class="btn btn-ghost btn-sm" onclick="toast('📁 Opening Drive folder…','info')">📁</button>`:''}
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>
+    </div>
+  `);
+}
+
+/* ── ATTENDANCE ── */
+function attendance(){
+  const isI=isInternee(CU.role)||CU.role==='staff';
+  if(isI){
+    const me=DB.members.find(i=>i.id===CU.iid)||DB.members[0];
+    const amap=DB.att[me.id]||{};
+    const todayK=fmtDateKey(new Date());
+    const todayAtt=amap[todayK];
+    const days=genJune();
+    const pr=Object.values(amap).filter(v=>v.st==='Present').length;
+    const ab=Object.values(amap).filter(v=>v.st==='Absent').length;
+    const lv=Object.values(amap).filter(v=>v.st==='Leave').length;
+    const md=Object.values(amap).filter(v=>v.st==='Medical').length;
+    const tot=Object.keys(amap).length;
+    const pct=tot?Math.round(pr/tot*100):0;
+
+    R(`
+      <div class="ph"><h2>📅 My Attendance</h2><p>Mark your attendance — timestamps are auto-recorded</p></div>
+
+      <div class="kg" style="grid-template-columns:repeat(5,1fr)">
+        ${kc('✅',pr,'Present','Days','')}
+        ${kc('❌',ab,'Absent','Days','var(--rose)')}
+        ${kc('🏖️',lv,'Leave','Days','var(--gold)')}
+        ${kc('🏥',md,'Medical','Days','var(--violet)')}
+        ${kc('📊',pct+'%','Total Att',pct>=80?'✅ Good':'⚠️ Below min',pct>=80?'var(--jade)':'var(--rose)')}
+      </div>
+
+      <div class="card">
+        <div class="ct"><span class="ct-icon">📅</span>Mark Today
+          <span style="font-size:12px;font-weight:400;color:var(--slate);margin-left:4px">${todayK} · ${new Date().toLocaleTimeString('en-GB',{hour12:false})}</span>
+        </div>
+        ${todayAtt?`
+          <div style="background:var(--jadelt);border:1px solid #6ee7b7;border-radius:var(--r2);padding:14px 18px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:24px">${todayAtt.st==='Present'?'✅':todayAtt.st==='Absent'?'❌':todayAtt.st==='Leave'?'🏖️':'🏥'}</span>
+              <div>
+                <div style="font-weight:800;color:var(--jadedark);font-size:15px">${todayAtt.st}</div>
+                <div class="ts-badge" style="margin-top:5px"><div class="ts-dot" style="background:var(--jade)"></div>Marked at: <strong>${todayAtt.ts}</strong></div>
+              </div>
+            </div>
+          </div>`:
+          `<div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-jade" onclick="markAtt('${me.id}','${todayK}','Present')">✅ Present</button>
+            <button class="btn btn-rose" onclick="markAtt('${me.id}','${todayK}','Absent')">❌ Absent</button>
+            <button class="btn btn-amber" onclick="markAtt('${me.id}','${todayK}','Leave')">🏖️ Leave</button>
+            <button class="btn btn-violet" onclick="markAtt('${me.id}','${todayK}','Medical')">🏥 Medical</button>
+          </div>`}
+      </div>
+
+      <div class="card">
+        <div class="ct"><span class="ct-icon">📆</span>${new Date().toLocaleDateString('en-GB',{month:'long'})} Attendance Calendar</div>
+        <div class="cal-hdr">${['SUN','MON','TUE','WED','THU','FRI','SAT'].map(d=>`<div class="cal-day-name">${d}</div>`).join('')}</div>
+        <div class="cal-grid">${renderCal(days,amap,todayK)}</div>
+        <div style="display:flex;gap:14px;margin-top:14px;flex-wrap:wrap">
+          ${[['var(--jadelt)','var(--jadedark)','Present'],['var(--roselt)','var(--rosedark)','Absent'],['var(--goldlt)','var(--golddark)','Leave'],['var(--violetlt)','var(--violetdark)','Medical']].map(([bg,c,l])=>
+            `<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:${c}"><div style="width:11px;height:11px;background:${bg};border-radius:3px;border:1px solid ${c}40"></div>${l}</div>`
+          ).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ct"><span class="ct-icon">🕐</span>Attendance Log (with Timestamps)</div>
+        <div class="tw"><table>
+          <thead><tr><th>Date</th><th>Status</th><th>Exact Timestamp</th><th>Marked By</th></tr></thead>
+          <tbody>
+            ${Object.entries(amap).sort((a,b)=>b[0].localeCompare(a[0])).map(([dk,v])=>`<tr>
+              <td style="font-weight:600">${dk}</td>
+              <td>${sp2(v.st)}</td>
+              <td><div class="ts-badge"><div class="ts-dot" style="background:${v.st==='Present'?'var(--jade)':v.st==='Absent'?'var(--rose)':'var(--gold)'}"></div>${v.ts}</div></td>
+              <td style="font-size:12px;color:var(--slate)">${v.by==='self'?'Self':v.by==='auto'?'Auto-system':'Admin'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table></div>
+      </div>
+    `);
+  } else {
+    // Admin/teacher
+    R(`
+      <div class="ph"><h2>📅 Attendance Register</h2><p>All interns' attendance with timestamps</p></div>
+      <div class="card" style="padding:0"><div class="tw"><table>
+        <thead><tr><th>Name</th><th>Role</th><th>Present</th><th>Absent</th><th>Leave</th><th>Att%</th><th>Last Marked</th><th>Status</th></tr></thead>
+        <tbody>${DB.members.map(i=>{
+          const a=DB.att[i.id]||{};
+          const pr=Object.values(a).filter(v=>v.st==='Present').length;
+          const ab=Object.values(a).filter(v=>v.st==='Absent').length;
+          const lv=Object.values(a).filter(v=>v.st==='Leave').length;
+          const lastEntry=Object.entries(a).sort((x,y)=>y[0].localeCompare(x[0]))[0];
+          const lastTs=lastEntry?lastEntry[1].ts:'—';
+          return`<tr>
+            <td><strong>${i.name}</strong></td>
+            <td><span class="pill p-sky" style="font-size:10px">${i.role}</span></td>
+            <td style="color:var(--jadedark);font-weight:700">${pr}</td>
+            <td style="color:var(--rosedark);font-weight:700">${ab}</td>
+            <td style="color:var(--golddark);font-weight:700">${lv}</td>
+            <td>${i.att>=80?`<span class="pill p-jade">${i.att}%</span>`:`<span class="pill p-rose">${i.att}%</span>`}</td>
+            <td><div class="ts-badge" style="font-size:10px"><div class="ts-dot" style="background:var(--jade)"></div>${lastTs}</div></td>
+            <td>${i.att>=80?`<span class="pill p-jade">✅ Good</span>`:`<span class="pill p-rose">⚠️ Warning</span>`}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div></div>
+    `);
+  }
+}
+
+/* ── WORKING HOURS ── */
+function hours(){
+  const me=DB.members.find(i=>i.id===CU.iid)||DB.members[0];
+  const iid=me.id;
+  const sessions=DB.sessions[iid]||[];
+  const weekTotal=sessions.reduce((s,h)=>{
+    const[hh,mm]=h.dur.split('h');
+    return s+(parseInt(hh)||0)+((parseInt((mm||'0m').replace('m','').trim())||0)/60);
+  },0);
+  const cs=clockState[iid]||{};
+  const isClockedIn=cs.status==='in';
+
+  R(`
+    <div class="ph"><h2>⏱️ Working Hours</h2><p>Clock in when you start — clock out when you finish. Exact timestamps recorded.</p></div>
+
+    <!-- BIG CLOCK CARD -->
+    <div class="clock-card">
+      <div class="cc-time" id="cc-time">${new Date().toLocaleTimeString('en-GB',{hour12:false})}</div>
+      <div class="cc-date" id="cc-date">${new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
+
+      <div class="cc-status" id="cc-status">
+        <div class="cc-dot" style="background:${isClockedIn?'var(--jade)':'#ef4444'}"></div>
+        <div class="cc-stat-text">${isClockedIn?`Clocked In — since <strong>${cs.cinTime}</strong>`:'Not clocked in'}</div>
+      </div>
+
+      <div class="cc-elapsed" id="cc-elapsed">${isClockedIn?fmtElapsed(Math.floor((Date.now()-cs.cinStamp)/1000)):'00:00:00'}</div>
+      <div class="cc-elapsed-label">Elapsed this session</div>
+
+      <div class="cc-btns">
+        ${!isClockedIn?
+          `<button class="btn-clockin" onclick="clockIn('${iid}')">⏱ Clock In</button>`:
+          `<button class="btn-clockout" onclick="mClockOut('${iid}')">⏹ Clock Out</button>
+           <div style="color:rgba(255,255,255,.6);font-size:12px;align-self:center">Remember to add your task notes when clocking out!</div>`}
+      </div>
+    </div>
+
+    <div class="kg" style="grid-template-columns:repeat(4,1fr)">
+      ${kc('📅',sessions.length,'Days Logged','This week','')}
+      ${kc('⏱️',weekTotal.toFixed(1)+'h','This Week',weekTotal>=5?'✅ Target met':'⚠️ Under 5h',weekTotal>=5?'var(--jade)':'var(--rose)')}
+      ${kc('📊',sessions.length?(weekTotal/sessions.length).toFixed(1)+'h':'0h','Daily Avg','Per session','')}
+      ${kc('🗓️','32h','Total','All 8 weeks','var(--ink)')}
+    </div>
+
+    <div class="card">
+      <div class="ct"><span class="ct-icon">📋</span>Session Log — This Week</div>
+      ${sessions.length?sessions.map(s=>`
+        <div class="session-row">
+          <div class="sr-date">${s.date} ${s.day}</div>
+          <div class="sr-in">⏵ ${s.cin}</div>
+          <div class="sr-out">⏹ ${s.cout}</div>
+          <div class="sr-dur" style="color:var(--ink2)">${s.dur}</div>
+          <div style="flex:1">
+            <div class="sr-tasks">${s.tasks}</div>
+            <div class="sr-note">📝 ${s.note}</div>
+          </div>
+        </div>`).join(''):
+        `<div style="text-align:center;padding:24px;color:var(--slate);font-size:13px">No sessions logged yet. Clock in to start!</div>`}
+    </div>
+  `);
+
+  // Start live clock update for the clock card
+  clockInterval && clearInterval(clockInterval);
+  clockInterval = setInterval(()=>{
+    const el1=document.getElementById('cc-time');
+    const el2=document.getElementById('cc-elapsed');
+    if(el1) el1.textContent=new Date().toLocaleTimeString('en-GB',{hour12:false});
+    if(el2){
+      const cs2=clockState[iid];
+      if(cs2&&cs2.status==='in'){
+        const diff=Math.floor((Date.now()-cs2.cinStamp)/1000);
+        el2.textContent=fmtElapsed(diff);
+      }
+    }
+  },1000);
+}
+
+/* ── FILES ── */
+function files(){
+  const isI=isInternee(CU.role)||CU.role==='staff';
+  const me=DB.members.find(i=>i.id===CU.iid)||DB.members[0];
+  const fl=[
+    {member:'Ahmed Ali',  file:'script_video1_v1.docx',vid:'Video #1',rev:'v1',date:'10 Jun 14:32',size:'48 KB', st:'Approved', icon:'📄'},
+    {member:'Sara Khan',  file:'edit_video1_v1.mp4',   vid:'Video #1',rev:'v1',date:'12 Jun 18:05',size:'248 MB',st:'Revision', icon:'🎬'},
+    {member:'Sara Khan',  file:'edit_video1_v2.mp4',   vid:'Video #1',rev:'v2',date:'13 Jun 10:12',size:'251 MB',st:'Pending',  icon:'🎬'},
+    {member:'Ali Raza',   file:'thumbs_v1.zip',         vid:'Video #1',rev:'v1',date:'11 Jun 11:20',size:'12 MB', st:'Approved', icon:'📦'},
+    {member:'Umar Farooq',file:'shorts_v1.zip',         vid:'Video #1',rev:'v1',date:'13 Jun 09:45',size:'85 MB', st:'Review',   icon:'🎬'},
+  ];
+  const shown=isI?fl.filter(f=>f.member===me.name):fl;
+
+  R(`
+    <div class="ph"><h2>📁 ${isI?'My Files':'All Submissions'}</h2>
+      <p>${isI?'Upload your work — auto-saved to Google Drive with Rev. tracking':'All submissions with timestamps'}</p>
+    </div>
+    <div class="drive-strip">
+      <span style="font-size:20px">☁️</span>
+      <div class="ds-text">Files organize automatically: <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px;font-size:11px">Interns/${isI?me.name:'[Name]'}/[Video#]/filename_v2.ext</code></div>
+      <a href="${CFG.DRIVE_URL}" target="_blank" class="ds-link">📁 Open Drive →</a>
+    </div>
+    ${isI?`
+    <div class="card">
+      <div class="ct"><span class="ct-icon">📤</span>Upload Submission</div>
+      <div class="fr">
+        <div class="ff"><label>Select Task</label>
+          <select><option>Video #1 — Script</option><option>Video #2 — Script</option><option>Video #1 — Revision</option></select>
+        </div>
+        <div class="ff"><label>Revision No (auto)</label>
+          <input type="text" value="v1 — will auto-increment" readonly style="background:var(--mist)">
+        </div>
+      </div>
+      <div class="dz" id="dz" onclick="document.getElementById('fInput').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleDrop(event)">
+        <div class="dz-icon">📂</div>
+        <div class="dz-text"><strong>Click to browse</strong> or drag & drop</div>
+        <div class="dz-text" style="font-size:11px;margin-top:4px">.docx .pdf .mp4 .png .jpg .zip — max 100MB</div>
+        <input type="file" id="fInput" style="display:none" multiple onchange="showFP(this,'fprev')">
+      </div>
+      <div id="fprev" style="margin-top:10px"></div>
+      <div class="fr s1" style="margin-top:10px">
+        <div class="ff"><label>Note to Teacher</label><textarea placeholder="Any notes about this submission..."></textarea></div>
+      </div>
+      <button class="btn btn-dark" onclick="uploadF()">☁️ Upload to Google Drive</button>
+    </div>`:''}
+    <div class="card" style="padding:0">
+      <div class="tw"><table>
+        <thead><tr>
+          ${!isI?'<th>Member</th>':''}<th>File</th><th>Video</th>
+          <th>Rev.</th><th>Upload Time</th><th>Size</th><th>Status</th><th>Action</th>
+        </tr></thead>
+        <tbody>${shown.map(f=>`<tr>
+          ${!isI?`<td>${f.member}</td>`:''}
+          <td><span style="font-size:15px">${f.icon}</span> <span style="font-size:12px">${f.file}</span></td>
+          <td style="font-size:12px">${f.vid}</td>
+          <td><span class="pill p-violet" style="font-size:10px">${f.rev}</span></td>
+          <td><div class="ts-badge" style="font-size:10px"><div class="ts-dot" style="background:var(--jade)"></div>${f.date}</div></td>
+          <td style="font-size:11px;color:var(--slate)">${f.size}</td>
+          <td>${sp(f.st==='Approved'?'Completed':f.st)}</td>
+          <td><button class="btn btn-ghost btn-sm">📥 View</button></td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>
+  `);
+}
+
+/* ── PROGRESS ── */
+function progress(){
+  const isI=isInternee(CU.role)||CU.role==='staff';
+  if(isI){
+    const me=DB.members.find(i=>i.id===CU.iid)||DB.members[0];
+    const mt=DB.tasks.filter(t=>t.iid===me.id);
+    const done=mt.filter(t=>t.st==='Completed').length;
+    R(`
+      <div class="ph"><h2>📈 My Progress</h2><p>Complete performance overview</p></div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px">
+          <div class="gc" style="width:58px;height:58px;font-size:21px;background:${me.grade==='A+'?'linear-gradient(135deg,var(--jade),#34d399)':'linear-gradient(135deg,var(--ink),var(--ink2))'}">${me.grade}</div>
+          <div style="flex:1">
+            <div style="font-size:18px;font-weight:800;letter-spacing:-.3px">${me.name}</div>
+            <div style="font-size:13px;color:var(--slate)">${me.designation} · Joined ${me.joined}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:38px;font-weight:800;color:var(--ink);letter-spacing:-1px">${me.pts}</div>
+            <div style="font-size:10px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px">Total Points</div>
+          </div>
+        </div>
+        ${pr2('Task Completion',`${done}/${mt.length}`,mt.length?Math.round(done/mt.length*100):0)}
+        ${pr2('Attendance',`${me.att}%`,me.att,me.att>=80?'var(--jade)':'var(--rose)')}
+        ${pr2('Points Score',`${me.pts}/100`,me.pts)}
+        ${pr2('On-time Submissions','Tracked','80','var(--violet)')}
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="ct"><span class="ct-icon">🎓</span>Certificate</div>
+          ${me.att>=75&&me.pts>=60?
+            `<div style="background:var(--jadelt);border-radius:var(--r2);padding:18px;text-align:center">
+              <div style="font-size:36px">🎓</div>
+              <div style="font-weight:800;color:var(--jadedark);margin-top:8px">Eligible!</div>
+              <div style="font-size:12px;color:var(--slate);margin-top:4px">Complete 8 weeks to receive</div>
+            </div>`:
+            `<div style="background:var(--roselt);border-radius:var(--r2);padding:18px;text-align:center">
+              <div style="font-size:36px">⏳</div>
+              <div style="font-weight:800;color:var(--rosedark);margin-top:8px">Not yet eligible</div>
+              <div style="font-size:12px;color:var(--slate);margin-top:4px">Need 75%+ attendance & 60+ points</div>
+            </div>`}
+        </div>
+        <div class="card">
+          <div class="ct"><span class="ct-icon">📄</span>Letter of Recommendation</div>
+          ${['A+','A'].includes(me.grade)?
+            `<div style="background:var(--goldlt);border-radius:var(--r2);padding:18px;text-align:center">
+              <div style="font-size:36px">📄</div>
+              <div style="font-weight:800;color:var(--golddark);margin-top:8px">Eligible!</div>
+              <div style="font-size:12px;color:var(--slate);margin-top:4px">Grade A/A+ earns an LOR</div>
+            </div>`:
+            `<div style="background:var(--mist);border-radius:var(--r2);padding:18px;text-align:center">
+              <div style="font-size:36px">📄</div>
+              <div style="font-weight:800;color:var(--slate);margin-top:8px">Not yet</div>
+              <div style="font-size:12px;color:var(--slate);margin-top:4px">Achieve Grade A or A+</div>
+            </div>`}
+        </div>
+      </div>
+    `);
+  } else {
+    R(`
+      <div class="ph"><h2>📈 All Progress Reports</h2></div>
+      ${DB.members.map(i=>{
+        const mt=DB.tasks.filter(t=>t.iid===i.id);
+        const done=mt.filter(t=>t.st==='Completed').length;
+        return`<div class="card" style="border-left:4px solid ${i.grade==='A+'?'var(--jade)':i.grade==='F'?'var(--rose)':'var(--ink3)'}">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+            <div class="gc" style="width:44px;height:44px;font-size:16px;background:${i.grade==='A+'?'linear-gradient(135deg,var(--jade),#34d399)':'linear-gradient(135deg,var(--ink),var(--ink2))'}">${i.grade}</div>
+            <div style="flex:1"><div style="font-weight:700">${i.name}</div><div style="font-size:12px;color:var(--slate)">${i.role}</div></div>
+            <div style="font-size:24px;font-weight:800;color:var(--ink)">${i.pts}</div>
+          </div>
+          <div class="g2">
+            <div>${pr2('Attendance',i.att+'%',i.att,i.att>=80?'var(--jade)':'var(--rose)')}</div>
+            <div>${pr2('Points',i.pts+'/100',i.pts)}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    `);
+  }
+}
+
+/* ── MEMBERS ── */
+function interns(){
+  R(`
+    <div class="ph"><h2>👥 All Members</h2>
+      ${['admin','superadmin'].includes(CU.role)?`<div class="ph-act"><button class="btn btn-dark" onclick="mAddIntern()">➕ Add Member</button></div>`:''}</div>
+    <div class="card" style="padding:0"><div class="tw"><table>
+      <thead><tr><th>#</th><th>Name</th><th>Role</th><th>Designation</th><th>Points</th><th>Grade</th><th>Att%</th><th>Warnings</th><th>Drive</th></tr></thead>
+      <tbody>${DB.members.map((i,x)=>`<tr>
+        <td style="color:var(--slate)">${x+1}</td>
+        <td><strong>${i.name}</strong><br><span style="font-size:10px;color:var(--slate)">Joined ${i.joined}</span></td>
+        <td><span class="role-tag rt-${i.role}" style="font-size:10px">${ROLE_LABELS[i.role]||i.role}</span></td>
+        <td><span class="pill p-sky" style="font-size:10px">${i.designation}</span></td>
+        <td><strong>${i.pts}</strong></td>
+        <td>${gp(i.grade)}</td>
+        <td>${i.att>=80?`<span class="pill p-jade">${i.att}%</span>`:`<span class="pill p-rose">${i.att}%</span>`}</td>
+        <td>${i.warn>0?`<span class="pill p-rose">⚠️ ${i.warn}</span>`:`<span class="pill p-mist">None</span>`}</td>
+        <td><a href="${CFG.DRIVE_URL}" target="_blank" class="btn btn-ghost btn-sm">📁 Drive</a></td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>
+  `);
+}
+
+/* ── LEADERBOARD ── */
+function leaderboard(){
+  const s=[...DB.members].sort((a,b)=>b.pts-a.pts);
+  R(`
+    <div class="ph"><h2>🏆 Leaderboard</h2><p>Ranked by total points</p></div>
+    <div class="card">
+      ${s.map((i,x)=>`
+        <div style="display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:var(--r2);margin-bottom:8px;background:${x===0?'linear-gradient(135deg,var(--goldlt),#fef9ec)':x===1?'linear-gradient(135deg,var(--mist),#f8fafc)':x===2?'linear-gradient(135deg,var(--amberlt),#fff9f5)':'var(--white)'};border:1.5px solid ${x===0?'#fcd34d':x===1?'#cbd5e1':x===2?'#fdba74':'var(--border)'}">
+          <div style="font-size:${x<3?28:16}px;width:44px;text-align:center;font-weight:800">${x===0?'🥇':x===1?'🥈':x===2?'🥉':'#'+(x+1)}</div>
+          <div style="flex:1">
+            <div style="font-weight:800;font-size:15px">${i.name}</div>
+            <div style="font-size:12px;color:var(--slate)">${i.designation||ROLE_LABELS[i.role]||i.role}</div>
+            <div style="margin-top:8px;max-width:280px"><div class="pb-wrap"><div class="pb" style="width:${i.pts}%;background:linear-gradient(90deg,var(--ink2),var(--jade))"></div></div></div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:26px;font-weight:800;letter-spacing:-.5px">${i.pts}</div>
+            ${gp(i.grade)}
+          </div>
+        </div>`).join('')}
+    </div>
+  `);
+}
+
+/* ── WARNINGS ── */
+function warnings(){
+  R(`
+    <div class="ph"><h2>⚠️ Warnings Log</h2><p>3 warnings = termination review</p>
+      <div class="ph-act"><button class="btn btn-rose" onclick="mWarn()">⚠️ Issue Warning</button></div>
+    </div>
+    <div class="card" style="padding:0"><div class="tw"><table>
+      <thead><tr><th>Member</th><th>Warning #</th><th>Reason</th><th>Date & Time</th><th>Issued By</th></tr></thead>
+      <tbody>${DB.warnings.map(w=>{
+        const i=DB.members.find(x=>x.id===w.iid);
+        return`<tr>
+          <td><strong>${i?.name||w.iid}</strong></td>
+          <td><span class="pill ${w.num>=3?'p-rose':'p-amber'}">⚠️ Warning ${w.num}</span></td>
+          <td style="font-size:12px">${w.reason}</td>
+          <td><div class="ts-badge" style="font-size:10px"><div class="ts-dot" style="background:var(--rose)"></div>${w.date}</div></td>
+          <td style="font-size:12px">${w.by}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div></div>
+  `);
+}
+
+/* ── USERS ── */
+function users(){
+  R(`
+    <div class="ph"><h2>🔧 User Management</h2>
+      <div class="ph-act"><button class="btn btn-dark" onclick="mAddUser()">➕ Add User</button></div>
+    </div>
+    <div class="card" style="padding:0"><div class="tw"><table>
+      <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Designation</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>${DB.users.map((u,x)=>`<tr>
+        <td style="color:var(--slate)">${x+1}</td>
+        <td><strong>${u.name}</strong></td>
+        <td style="font-size:12px;color:var(--slate)">${u.email}</td>
+        <td><span class="role-tag rt-${u.role}">${ROLE_LABELS[u.role]||u.role}</span></td>
+        <td style="font-size:12px">${u.designation||'—'}</td>
+        <td><span class="pill p-jade">Active</span></td>
+        <td><div style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm">✏️ Edit</button>
+          <button class="btn btn-rose btn-sm" onclick="toast('🔑 Password reset link sent!','info')">🔑 Reset</button>
+        </div></td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>
+  `);
+}
+
+/* ── SETTINGS ── */
+function settings(){
+  R(`
+    <div class="ph"><h2>⚙️ Settings</h2></div>
+    <div class="card">
+      <div class="ct"><span class="ct-icon">☁️</span>Google Apps Script Connection</div>
+      <div style="background:var(--skylt);border:1px solid var(--sky);border-radius:var(--r2);padding:14px;margin-bottom:16px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px">No Google Cloud Required</div>
+        <div style="font-size:12px;color:var(--slate)">This portal uses only Google Apps Script + Sheets + Drive — all free with any Gmail account. No Cloud Console setup needed.</div>
+      </div>
+      <div class="fr"><div class="ff"><label>Apps Script URL</label><input placeholder="https://script.google.com/macros/s/.../exec" value="${CFG.API!=='YOUR_APPS_SCRIPT_URL'?CFG.API:''}"></div>
+      <div class="ff"><label>Spreadsheet ID</label><input placeholder="From Google Sheet URL"></div></div>
+      <div class="fr"><div class="ff"><label>Drive Folder ID</label><input value="${CFG.DRIVE_FOLDER}" placeholder="Google Drive folder ID"></div>
+      <div class="ff"><label>Admin WhatsApp</label><input placeholder="+92 300 1234567"></div></div>
+      <div style="margin-bottom:16px">
+        <a href="${CFG.DRIVE_URL}" target="_blank" class="btn btn-jade btn-sm">📁 Open Linked Drive Folder →</a>
+      </div>
+      <button class="btn btn-jade" onclick="toast('✅ Settings saved!','success')">💾 Save</button>
+    </div>
+    <div class="card">
+      <div class="ct"><span class="ct-icon">🏢</span>Portal Settings</div>
+      <div class="fr"><div class="ff"><label>Portal Name</label><input value="DM Team Portal"></div>
+      <div class="ff"><label>Organization</label><input value="Design Muster"></div></div>
+      <div class="fr"><div class="ff"><label>Min Attendance %</label><input type="number" value="75"></div>
+      <div class="ff"><label>Min Points (Certificate)</label><input type="number" value="60"></div></div>
+      <button class="btn btn-dark" onclick="toast('✅ Saved!','success')">💾 Save</button>
+    </div>
+    <div class="card">
+      <div class="ct"><span class="ct-icon">👥</span>Role Permissions</div>
+      <div style="overflow-x:auto"><table style="font-size:12px">
+        <thead><tr><th>Feature</th><th>Internee</th><th>Staff</th><th>Team Lead</th><th>Admin</th><th>Super Admin</th></tr></thead>
+        <tbody>
+          ${[
+            ['Own Attendance','✅','✅','✅','✅','✅'],
+            ['Own Tasks','✅','✅','✅','✅','✅'],
+            ['Clock In/Out','✅','✅','✅','✅','✅'],
+            ['View All Members','❌','❌','✅','✅','✅'],
+            ['Assign Tasks','❌','❌','✅','✅','✅'],
+            ['Issue Warnings','❌','❌','❌','✅','✅'],
+            ['User Management','❌','❌','❌','❌','✅'],
+            ['System Settings','❌','❌','❌','❌','✅'],
+          ].map(([f,...cols])=>`<tr><td style="font-weight:600">${f}</td>${cols.map(c=>`<td style="text-align:center">${c}</td>`).join('')}</tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>
+  `);
+}
+
+/* ── HELP ── */
+function help(){
+  R(`
+    <div class="ph"><h2>❓ Help & FAQ</h2></div>
+    ${[
+      ['How do I mark attendance?','Go to Attendance → tap Present/Absent/Leave/Medical. Exact timestamp is auto-recorded. You can see your full attendance log with timestamps at the bottom of the page.'],
+      ['How does Clock In/Out work?','Go to Working Hours → press Clock In when you start. A live timer runs. Press Clock Out when done and add your task notes. The session is saved with exact start/end times.'],
+      ['What is Rev. No?','Revision Number tracks resubmissions. v1 = first submission, v2 = after first revision, etc. Your teacher can see all versions in Google Drive.'],
+      ['I got a Revision request — what now?','Go to Tasks → find the task marked Revision → read the feedback → fix your work → click Submit again. Rev. No auto-increments.'],
+      ['How are points calculated?','10 pts per completed task + quality bonus (1–5 pts) + attendance bonus (up to 20 pts) − 5 pts per warning received.'],
+      ['When do I get my certificate?','After 8 weeks with 75%+ attendance and 60+ points. Grade A/A+ also earns a Letter of Recommendation.'],
+      ['I forgot my password?','Contact your admin on WhatsApp. Super Admin can reset any password from User Management.'],
+    ].map(([q,a])=>`<div class="card" style="margin-bottom:12px">
+      <div style="font-weight:800;color:var(--ink);margin-bottom:7px">❓ ${q}</div>
+      <div style="font-size:13px;color:var(--slate);line-height:1.7">${a}</div>
+    </div>`).join('')}
+  `);
+}
+
+// ════════════════════════════════════════════════════════
+// CLOCK IN / OUT
+// ════════════════════════════════════════════════════════
+function clockIn(iid){
+  const now=new Date();
+  clockState[iid]={
+    status:'in',
+    cinTime:now.toLocaleTimeString('en-GB',{hour12:false}),
+    cinStamp:Date.now(),
+    cinDate:fmtDateKey(now),
+  };
+  sessionStorage.setItem('clockState',JSON.stringify(clockState));
+  toast('⏵ Clocked in at '+clockState[iid].cinTime,'success');
+  hours();
+}
+
+function mClockOut(iid){
+  const cs=clockState[iid];
+  if(!cs) return;
+  const diff=Math.floor((Date.now()-cs.cinStamp)/1000);
+  showModal('⏹ Clock Out',`
+    <div style="background:var(--mist);border-radius:var(--r2);padding:16px;margin-bottom:16px;text-align:center">
+      <div style="font-size:13px;color:var(--slate)">Session Duration</div>
+      <div style="font-size:36px;font-weight:800;color:var(--ink);margin:6px 0;font-variant-numeric:tabular-nums">${fmtElapsed(diff)}</div>
+      <div style="font-size:12px;color:var(--slate)">${cs.cinTime} → ${new Date().toLocaleTimeString('en-GB',{hour12:false})}</div>
+    </div>
+    <div class="fr s1"><div class="ff"><label>Tasks Worked On</label><input id="co-tasks" placeholder="e.g. Script writing, thumbnails..."></div></div>
+    <div class="fr s1"><div class="ff"><label>Session Notes</label><textarea id="co-notes" placeholder="What did you accomplish today?"></textarea></div></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-rose" onclick="doClockOut('${iid}',${diff})">⏹ Clock Out</button>
+    </div>
+  `);
+}
+
+function doClockOut(iid,diff){
+  const cs=clockState[iid];
+  const tasks=document.getElementById('co-tasks')?.value||'—';
+  const notes=document.getElementById('co-notes')?.value||'—';
+  const coutTime=new Date().toLocaleTimeString('en-GB',{hour12:false});
+
+  // Save session
+  if(!DB.sessions[iid]) DB.sessions[iid]=[];
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  DB.sessions[iid].unshift({
+    date:cs.cinDate,
+    day:days[new Date().getDay()],
+    cin:cs.cinTime,
+    cout:coutTime,
+    dur:fmtElapsed(diff),
+    tasks,
+    note:notes,
+  });
+
+  delete clockState[iid];
+  sessionStorage.setItem('clockState',JSON.stringify(clockState));
+  closeModal();
+  toast(`⏹ Clocked out at ${coutTime} — Session: ${fmtElapsed(diff)}`,'success');
+  hours();
+}
+
+// ════════════════════════════════════════════════════════
+// ATTENDANCE ACTIONS
+// ════════════════════════════════════════════════════════
+function markAtt(iid,dk,status){
+  if(!DB.att[iid]) DB.att[iid]={};
+  const now=new Date();
+  const ts=`${dk} ${now.toLocaleTimeString('en-GB',{hour12:false})}`;
+  DB.att[iid][dk]={st:status,ts,by:'self'};
+  toast(`✅ ${status} — recorded at ${ts}`,'success');
+  attendance();
+}
+
+function quickAtt(iid,dk){ markAtt(iid,dk,'Present'); }
+
+// ════════════════════════════════════════════════════════
+// MODALS
+// ════════════════════════════════════════════════════════
+function showModal(title,html){
+  document.getElementById('mcon').innerHTML=`<div class="mhdr"><div class="mtit">${title}</div><button class="mclose" onclick="closeModal()">✕</button></div>${html}`;
+  document.getElementById('mbg').classList.remove('hidden');
+}
+function closeModal(){ document.getElementById('mbg').classList.add('hidden'); }
+
+function mSubmit(tid){
+  const t=DB.tasks.find(x=>x.id===tid);
+  showModal(`📤 Submit Task`,`
+    <div class="fr"><div class="ff"><label>Task</label><input value="${t.title}" readonly style="background:var(--mist)"></div>
+    <div class="ff"><label>Rev. No (auto)</label><input value="v${t.rev+1}" readonly style="background:var(--mist)"></div></div>
+    <div class="ff" style="margin-bottom:12px"><label>Drive Path (auto)</label>
+      <input value="${CU.name}/${t.vid}/file_v${t.rev+1}.ext" readonly style="background:var(--mist);font-size:11px"></div>
+    <div class="dz" style="margin-bottom:12px" onclick="document.getElementById('mfi').click()">
+      <div class="dz-icon">📂</div>
+      <div class="dz-text"><strong>Select file</strong> to upload</div>
+      <input type="file" id="mfi" style="display:none" onchange="showFP(this,'mfp')">
+    </div>
+    <div id="mfp" style="margin-bottom:12px"></div>
+    ${t.fb?`<div class="rev-item"><div class="rev-hdr"><span class="rev-num">Rev.${t.rev} Feedback</span></div><div class="rev-fb">${t.fb}</div></div>`:''}
+    <div class="ff" style="margin-bottom:16px"><label>Note to Reviewer</label><textarea placeholder="Any notes..."></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-dark" onclick="doSubmit('${tid}')">☁️ Upload & Submit</button>
+    </div>
+  `);
+}
+
+function mGrade(tid){
+  const t=DB.tasks.find(x=>x.id===tid);
+  const member=DB.members.find(i=>i.id===t.iid);
+  showModal(`✏️ Grade — ${member?.name} · ${t.vid}`,`
+    <div class="fr">
+      <div class="ff"><label>Score / 10</label><input type="number" id="gscore" min="0" max="10" step=".5" value="${t.score||''}"></div>
+      <div class="ff"><label>Status</label>
+        <select id="gstatus"><option>Completed</option><option>Revision</option><option>Rejected</option></select>
+      </div>
+    </div>
+    ${t.rev>0?`<div class="rev-item" style="margin-bottom:12px">
+      <div class="rev-hdr"><span class="rev-num">Rev.${t.rev}</span><span class="rev-date">Submitted: ${t.sub}</span></div>
+      ${t.path?`<div class="rev-file"><span>📄</span><span style="flex:1;font-size:11px">${t.path.split('/').pop()}</span><button class="btn btn-ghost btn-sm">📥</button></div>`:''}
+      <div class="rev-fb">${t.fb||'No previous feedback.'}</div>
+    </div>`:''}
+    <div class="ff" style="margin-bottom:16px"><label>Feedback / Revision Notes</label>
+      <textarea id="gfb" placeholder="Write detailed feedback...">${t.fb||''}</textarea>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-amber" onclick="doGrade('${tid}','Revision')">🔄 Request Revision</button>
+      <button class="btn btn-jade" onclick="doGrade('${tid}','Completed')">✅ Approve</button>
+    </div>
+  `);
+}
+
+function mAssign(){
+  showModal('➕ Assign Task',`
+    <div class="fr">
+      <div class="ff"><label>Member</label>
+        <select>${DB.members.map(i=>`<option value="${i.id}">${i.name} — ${i.designation}</option>`).join('')}</select>
+      </div>
+      <div class="ff"><label>Project #</label><input placeholder="e.g. Project #3"></div>
+    </div>
+    <div class="ff" style="margin-bottom:12px"><label>Task Title</label><input placeholder="e.g. Full Script — AI Tools"></div>
+    <div class="fr">
+      <div class="ff"><label>Priority</label><select><option>High</option><option>Medium</option><option>Low</option></select></div>
+      <div class="ff"><label>Deadline</label><input type="date"></div>
+    </div>
+    <div class="ff" style="margin-bottom:16px"><label>Instructions</label><textarea placeholder="Task details..."></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-dark" onclick="closeModal();toast('✅ Task assigned! Drive folder created.','success')">✅ Assign</button>
+    </div>
+  `);
+}
+
+function mWarn(){
+  showModal('⚠️ Issue Warning',`
+    <div class="ff" style="margin-bottom:12px"><label>Select Member</label>
+      <select>${DB.members.map(i=>`<option value="${i.id}">${i.name} — ${i.designation} (${i.warn||0} warning${(i.warn||0)!==1?'s':''})</option>`).join('')}</select>
+    </div>
+    <div class="fr">
+      <div class="ff"><label>Warning #</label><select><option>1</option><option>2</option><option>3 (Final)</option></select></div>
+      <div class="ff"><label>Date</label><input type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+    </div>
+    <div class="ff" style="margin-bottom:12px"><label>Reason</label><textarea placeholder="Reason..."></textarea></div>
+    <div style="background:var(--roselt);border-radius:var(--r3);padding:10px 13px;font-size:12px;color:var(--rosedark);margin-bottom:14px">⚠️ Warning 3 = automatic review. 5 points will be deducted.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-rose" onclick="closeModal();toast('⚠️ Warning issued. 5 pts deducted.','info')">Issue Warning</button>
+    </div>
+  `);
+}
+
+function mAddIntern(){
+  showModal('➕ Add New Member',`
+    <div class="fr">
+      <div class="ff"><label>Full Name</label><input placeholder="Full name"></div>
+      <div class="ff"><label>Email</label><input type="email" placeholder="email@designmuster.com"></div>
+    </div>
+    <div class="fr">
+      <div class="ff"><label>Portal Role</label>
+        <select>
+          <option value="internee">Internee</option>
+          <option value="staff">Staff</option>
+          <option value="teamlead">Team Lead</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="ff"><label>Work Designation</label>
+        <select>
+          <option>Content Writer</option><option>Video Editor</option><option>AI Graphics Designer</option>
+          <option>SEO Manager</option><option>Social Media Manager</option>
+          <option>3D Visualization Artist</option><option>Web Developer</option>
+          <option>AR/VR Designer</option><option>Virtual Tour Creator</option>
+          <option>Creative Team Lead</option><option>Operations Manager</option>
+        </select>
+      </div>
+    </div>
+    <div class="fr">
+      <div class="ff"><label>Join Date</label><input type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+      <div class="ff"><label>Temp Password</label><input placeholder="Temporary password"></div>
+    </div>
+    <div style="background:var(--sky);border-radius:var(--r3);padding:10px 13px;font-size:12px;color:var(--ink2);margin-bottom:14px">
+      ☁️ A Google Drive folder will be auto-created for this member at:<br>
+      <code style="font-size:11px">DM Team Portal / Members / [Name]</code>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-dark" onclick="closeModal();toast('✅ Member added! Drive folder auto-created.','success')">➕ Add Member</button>
+    </div>
+  `);
+}
+
+function mAddUser(){
+  showModal('➕ Add User Account',`
+    <div class="fr">
+      <div class="ff"><label>Name</label><input placeholder="Full name"></div>
+      <div class="ff"><label>Email</label><input type="email" placeholder="email@designmuster.com"></div>
+    </div>
+    <div class="fr">
+      <div class="ff"><label>Portal Role</label>
+        <select>
+          <option value="internee">Internee</option>
+          <option value="staff">Staff</option>
+          <option value="teamlead">Team Lead</option>
+          <option value="admin">Admin</option>
+          <option value="superadmin">Super Admin</option>
+        </select>
+      </div>
+      <div class="ff"><label>Work Designation</label>
+        <input placeholder="e.g. Video Editor, 3D Artist...">
+      </div>
+    </div>
+    <div class="ff" style="margin-bottom:16px"><label>Password</label><input type="password" placeholder="Set password"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-dark" onclick="closeModal();toast('✅ User added!','success')">Add User</button>
+    </div>
+  `);
+}
+
+// ════════════════════════════════════════════════════════
+// ACTIONS
+// ════════════════════════════════════════════════════════
+function doSubmit(tid){
+  closeModal();
+  toast('☁️ Uploading to Google Drive…','info');
+  setTimeout(()=>{
+    const t=DB.tasks.find(x=>x.id===tid);
+    if(t){t.st='Review';t.rev++;t.sub=new Date().toLocaleString('en-GB',{hour12:false,day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).replace(',',' ');}
+    toast('✅ Submitted & saved to Drive!','success');
+    tasks();
+  },1600);
+}
+
+function doGrade(tid,status){
+  closeModal();
+  const t=DB.tasks.find(x=>x.id===tid);
+  if(t){ t.st=status; if(document.getElementById('gfb')) t.fb=document.getElementById('gfb').value; }
+  toast(status==='Completed'?'✅ Task approved!':'🔄 Revision requested.','success');
+  tasks();
+}
+
+function ftasks(s){
+  document.querySelectorAll('#tbl tbody tr').forEach(r=>{
+    r.style.display=(s==='All'||r.textContent.includes(s))?'':'none';
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════
+function kc(icon,val,label,sub,color){
+  return`<div class="kc" ${color?`style="--kc-c:${color}"`:''}>
+    ${color?`<style>.kc:hover{--kc-c:${color}}</style>`:''}
+    <div class="kc-i">${icon}</div>
+    <div class="kc-v" style="${color?`color:${color}`:''}">${val}</div>
+    <div class="kc-l">${label}</div>
+    <div class="kc-s">${sub}</div>
+    <style>.kc::after{background:${color||'var(--ink)'}}</style>
+  </div>`;
+}
+
+function pr2(label,sub,pct,color='linear-gradient(90deg,var(--ink2),var(--jade))'){
+  const bg=color.startsWith('var(')||color.startsWith('linear')?color:color;
+  return`<div style="margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
+      <span style="font-weight:700">${label}</span><span style="color:var(--slate)">${sub}</span>
+    </div>
+    <div class="pb-wrap"><div class="pb" style="width:${Math.min(100,pct)}%;background:${bg}"></div></div>
+  </div>`;
+}
+
+function sp(s){
+  const m={'Completed':'p-jade','In Progress':'p-amber','Pending':'p-mist','Revision':'p-violet','Rejected':'p-rose','Review':'p-sky'};
+  return`<span class="pill ${m[s]||'p-mist'}">${s}</span>`;
+}
+
+function sp2(s){
+  const m={'Present':'p-jade','Absent':'p-rose','Leave':'p-gold','Medical':'p-violet'};
+  return`<span class="pill ${m[s]||'p-mist'}">${s}</span>`;
+}
+
+function pp(p){
+  return`<span class="pill ${p==='High'?'p-rose':p==='Medium'?'p-amber':'p-mist'}" style="font-size:10px">${p}</span>`;
+}
+
+function gp(g){
+  return`<span class="pill ${g==='A+'?'p-jade':g==='F'?'p-rose':g==='A'?'p-sky':'p-gold'}">${g}</span>`;
+}
+
+function fmtDateKey(d){
+  return`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function fmtElapsed(sec){
+  const h=Math.floor(sec/3600);
+  const m=Math.floor((sec%3600)/60);
+  const s=sec%60;
+  return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function genMonth(){
+  const now=new Date();
+  const y=now.getFullYear(), m=now.getMonth();
+  const days=[];
+  const firstDay=new Date(y,m,1).getDay();
+  const total=new Date(y,m+1,0).getDate();
+  for(let b=0;b<firstDay;b++) days.push(null);
+  for(let d=1;d<=total;d++) days.push(d);
+  return{days,y,m};
+}
+
+function genJune(){ return genMonth().days; } // backward compat alias
+
+function renderCal(days,amap,todayK){
+  const now=new Date();
+  const {y,m}=genMonth();
+  const mStr=String(m+1).padStart(2,'0');
+  return days.map(d=>{
+    if(!d) return`<div class="cday cd-emp"></div>`;
+    const k=`${String(d).padStart(2,'0')}/${mStr}`;
+    const v=amap[k];
+    const isT=k===todayK;
+    const isFut=new Date(y,m,d)>now;
+    const cls=isFut?'cd-fut':v?.st==='Present'?'cd-present':v?.st==='Absent'?'cd-absent':v?.st==='Leave'?'cd-leave':v?.st==='Medical'?'cd-medical':'cd-fut';
+    const ts=v?.ts?v.ts.split(' ')[1]:'';
+    return`<div class="cday ${cls} ${isT?'cd-today':''}" title="${k}: ${v?.st||'Not marked'}${v?.ts?' @ '+v.ts:''}">
+      <span>${d}</span>
+      ${ts?`<span class="cd-ts">${ts}</span>`:''}
+    </div>`;
+  }).join('');
+}
+
+function showFP(inp,cid){
+  const el=document.getElementById(cid);
+  if(!el) return;
+  el.innerHTML=Array.from(inp.files).map(f=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 12px;background:var(--skylt);border-radius:var(--r3);margin-bottom:5px;border:1px solid var(--border)">
+      <span>${f.name.endsWith('.mp4')||f.name.endsWith('.mov')?'🎬':f.name.endsWith('.docx')||f.name.endsWith('.pdf')?'📄':f.name.endsWith('.zip')?'📦':'🖼️'}</span>
+      <span style="font-size:12px;flex:1">${f.name}</span>
+      <span style="font-size:11px;color:var(--slate)">${(f.size/1024/1024).toFixed(1)} MB</span>
+    </div>`).join('');
+}
+
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('dz')?.classList.remove('drag');
+  showFP({files:e.dataTransfer.files},'fprev');
+}
+
+function uploadF(){
+  toast('☁️ Uploading to Google Drive…','info');
+  setTimeout(()=>toast('✅ Files uploaded with correct Rev. No!','success'),2000);
+}
+
+function toast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  const bg=type==='success'?'#10b981':type==='error'?'#f43f5e':'#1e3a5f';
+  t.style.cssText=`display:block;background:${bg};color:#fff;position:fixed;bottom:20px;right:20px;padding:12px 18px;border-radius:12px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 8px 32px rgba(13,27,42,.2);max-width:320px;animation:tin .25s ease`;
+  clearTimeout(t._to);
+  t._to=setTimeout(()=>t.style.display='none',3200);
+}
+</script>
+</body>
+</html>
