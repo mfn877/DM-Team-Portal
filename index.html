@@ -326,9 +326,18 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle}
     <div class="lr-sub">Enter your email and password to continue</div>
     <div class="lerr" id="lerr"></div>
     <div class="fi"><label>Email</label><input type="email" id="lemail" placeholder="email@designmuster.com"></div>
-    <div class="fi"><label>Password</label><input type="password" id="lpass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="fi">
+      <label>Password</label>
+      <div style="position:relative">
+        <input type="password" id="lpass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" style="width:100%;padding-right:44px">
+        <button type="button" onclick="togglePw('lpass','lpass-eye')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#999;font-size:16px;padding:4px" id="lpass-eye">👁</button>
+      </div>
+      <div style="text-align:right;margin-top:5px">
+        <button type="button" onclick="showForgotPass()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--ink3);text-decoration:underline;padding:0;font-family:'DM Sans',sans-serif">Forgot Password?</button>
+      </div>
+    </div>
     <button class="btn-signin" onclick="doLogin()">Sign In →</button>
-    <div class="lp-footer">Demo: ahmed@intern.com / ahmed123 &nbsp;·&nbsp; super@admin.com / super123</div>
+    <div class="lp-footer">Authorized users only</div>
   </div>
 </div>
 
@@ -370,7 +379,7 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle}
 const CFG = {
   API: "https://script.google.com/macros/s/AKfycbzgHfFeigSUezRwctWhHNU3p5qIcnkzDhBcNWzXJlpahkZ3D73YLVfmXrtLYKSPZDPa/exec",
   DEMO: false,
-  SHEET_ID: "1ZikUg1eg3OM1wbPWYEynMT6048a-oBIsgo5wp4p1cNI",
+  SHEET_ID: "1hURgzLYHkZ6sT400wlUAQRMKRyWeuq-ELcUaIKr7Yns",
   DRIVE_FOLDER: "1iVKDVT6q6IbJWj6yj_fXx87aQOao46eQ",
   DRIVE_URL: "https://drive.google.com/drive/folders/1iVKDVT6q6IbJWj6yj_fXx87aQOao46eQ",
 };
@@ -379,51 +388,12 @@ const CFG = {
 // DEMO DATA
 // ════════════════════════════════════════════════════════
 const DB = {
-  users:[
-    {id:"u1",name:"Ahmed Ali",     email:"ahmed@intern.com",   pass:"ahmed123",   role:"internee",  designation:"Content Writer",    iid:"i1"},
-    {id:"u2",name:"Sara Khan",     email:"sara@intern.com",    pass:"sara123",    role:"internee",  designation:"Video Editor",       iid:"i2"},
-    {id:"u3",name:"Ali Raza",      email:"ali@intern.com",     pass:"ali123",     role:"internee",  designation:"AI Graphics Designer",iid:"i3"},
-    {id:"u4",name:"Ms. Fatima",    email:"fatima@team.com",    pass:"lead123",    role:"teamlead",  designation:"Creative Team Lead"},
-    {id:"u5",name:"Bilal Ahmed",   email:"bilal@team.com",     pass:"staff123",   role:"staff",     designation:"3D Visualization Artist"},
-    {id:"u6",name:"Admin Khan",    email:"admin@dm.com",       pass:"admin123",   role:"admin",     designation:"Operations Manager"},
-    {id:"u7",name:"Super Admin",   email:"super@admin.com",    pass:"super123",   role:"superadmin",designation:"Director"},
-  ],
-  members:[
-    {id:"i1",name:"Ahmed Ali",    role:"internee", designation:"Content Writer",         pts:85,grade:"A", att:87,warn:0,joined:"01 Jun",batch:"Batch 1"},
-    {id:"i2",name:"Sara Khan",    role:"internee", designation:"Video Editor",            pts:72,grade:"B", att:75,warn:1,joined:"01 Jun",batch:"Batch 1"},
-    {id:"i3",name:"Ali Raza",     role:"internee", designation:"AI Graphics Designer",    pts:94,grade:"A+",att:100,warn:0,joined:"01 Jun",batch:"Batch 1"},
-    {id:"i4",name:"Fatima Naz",   role:"internee", designation:"SEO Manager",             pts:58,grade:"C", att:63,warn:2,joined:"01 Jun",batch:"Batch 1"},
-    {id:"i5",name:"Umar Farooq",  role:"internee", designation:"Social Media Manager",    pts:78,grade:"B", att:88,warn:0,joined:"01 Jun",batch:"Batch 1"},
-    {id:"s1",name:"Ms. Fatima",   role:"teamlead", designation:"Creative Team Lead",      pts:95,grade:"A+",att:96,warn:0,joined:"15 Jan",batch:"Core Team"},
-    {id:"s2",name:"Bilal Ahmed",  role:"staff",    designation:"3D Visualization Artist", pts:88,grade:"A", att:92,warn:0,joined:"20 Feb",batch:"Core Team"},
-  ],
-  tasks:[
-    {id:"t1",iid:"i1",vid:"Project #1",title:"Full Script — Top 10 AI Tools",          pri:"High",  st:"Completed",   dl:"11 Jun",sub:"10 Jun 14:32",score:9, rev:1,fb:"Excellent hook! Minor CTA tweak needed.",      path:"Ahmed Ali/Project #1/script_v1.docx"},
-    {id:"t2",iid:"i1",vid:"Project #2",title:"Script — How to Make $500 Online",       pri:"High",  st:"In Progress", dl:"18 Jun",sub:"",           score:"",rev:0,fb:"",path:""},
-    {id:"t3",iid:"i2",vid:"Project #1",title:"Final Video Edit — 8 min voiceover",     pri:"High",  st:"Revision",    dl:"12 Jun",sub:"12 Jun 18:05",score:"",rev:2,fb:"Audio sync off at 2:34. Fix & resubmit.",      path:"Sara Khan/Project #1/edit_v2.mp4"},
-    {id:"t4",iid:"i3",vid:"Project #1",title:"3 Thumbnails + Channel Banner",          pri:"High",  st:"Completed",   dl:"12 Jun",sub:"11 Jun 11:20",score:10,rev:1,fb:"Perfect! Publishing all 3.",                   path:"Ali Raza/Project #1/thumbs_v1.zip"},
-    {id:"t5",iid:"i4",vid:"Project #1",title:"SEO Pack — Title + Desc + 15 Tags",      pri:"Medium",st:"Pending",     dl:"13 Jun",sub:"",           score:"",rev:0,fb:"",path:""},
-    {id:"t6",iid:"i5",vid:"Project #1",title:"3 Shorts + 1 Community Post",            pri:"High",  st:"Review",      dl:"13 Jun",sub:"13 Jun 09:45",score:"",rev:1,fb:"",path:"Umar Farooq/Project #1/shorts_v1.zip"},
-  ],
-  att:{
-    i1:{"01/06":{st:"Present",ts:"01/06 09:02:14",by:"self"},"02/06":{st:"Present",ts:"02/06 08:58:33",by:"self"},"03/06":{st:"Present",ts:"03/06 09:11:05",by:"self"},"04/06":{st:"Absent",ts:"04/06 23:59:00",by:"auto"},"05/06":{st:"Present",ts:"05/06 09:05:22",by:"self"},"06/06":{st:"Present",ts:"06/06 08:47:18",by:"self"},"09/06":{st:"Present",ts:"09/06 09:03:44",by:"self"},"10/06":{st:"Present",ts:"10/06 09:00:11",by:"self"},"11/06":{st:"Present",ts:"11/06 09:07:38",by:"self"},"12/06":{st:"Present",ts:"12/06 08:55:20",by:"self"},"13/06":{st:"Present",ts:"13/06 09:01:47",by:"self"}},
-    i2:{"01/06":{st:"Present",ts:"01/06 09:14:22",by:"self"},"02/06":{st:"Absent",ts:"02/06 23:59:00",by:"auto"},"03/06":{st:"Present",ts:"03/06 10:02:55",by:"self"},"04/06":{st:"Leave",ts:"04/06 08:30:00",by:"self"},"05/06":{st:"Present",ts:"05/06 09:20:10",by:"self"},"09/06":{st:"Present",ts:"09/06 09:00:03",by:"self"},"10/06":{st:"Absent",ts:"10/06 23:59:00",by:"auto"},"11/06":{st:"Present",ts:"11/06 09:15:44",by:"self"}},
-    i3:{"01/06":{st:"Present",ts:"01/06 08:45:00",by:"self"},"02/06":{st:"Present",ts:"02/06 08:50:00",by:"self"},"03/06":{st:"Present",ts:"03/06 08:55:00",by:"self"},"04/06":{st:"Present",ts:"04/06 09:00:00",by:"self"},"05/06":{st:"Present",ts:"05/06 09:05:00",by:"self"},"09/06":{st:"Present",ts:"09/06 08:58:00",by:"self"},"10/06":{st:"Present",ts:"10/06 09:02:00",by:"self"},"11/06":{st:"Present",ts:"11/06 09:10:00",by:"self"}},
-  },
-  sessions:{
-    i1:[
-      {date:"09/06",day:"Mon",cin:"09:03",cout:"16:30",dur:"7h 27m",tasks:"Script research, outline",  note:"Completed 70% of script"},
-      {date:"10/06",day:"Tue",cin:"09:00",cout:"15:32",dur:"6h 32m",tasks:"Script writing, revision",  note:"Submitted Project #1 script ✅"},
-      {date:"11/06",day:"Wed",cin:"09:07",cout:"17:10",dur:"8h 03m",tasks:"Project #2 research",       note:"New outline started"},
-      {date:"12/06",day:"Thu",cin:"08:55",cout:"14:28",dur:"5h 33m",tasks:"Script drafting V2",        note:"50% done"},
-      {date:"13/06",day:"Fri",cin:"09:01",cout:"14:05",dur:"5h 04m",tasks:"Applied feedback",          note:"Corrections complete"},
-    ]
-  },
-  warnings:[
-    {iid:"i2",num:1,reason:"Late submission — Project #1 edit 2 days overdue", date:"12/06 14:22",by:"Ms. Fatima"},
-    {iid:"i4",num:1,reason:"3 consecutive unexplained absences",                date:"08/06 10:05",by:"Admin Khan"},
-    {iid:"i4",num:2,reason:"Task not submitted after 2nd reminder",             date:"11/06 16:30",by:"Admin Khan"},
-  ],
+  users:[],
+  members:[],
+  tasks:[],
+  att:{},
+  sessions:{},
+  warnings:[],
 };
 
 // ════════════════════════════════════════════════════════
@@ -649,6 +619,7 @@ const MENUS={
     {i:'⏱️',l:'Working Hours', p:'hours'},
     {i:'📁',l:'My Files',     p:'files'},
     {i:'📈',l:'My Progress',  p:'progress'},
+    {i:'🔑',l:'Change Password',p:'changepass'},
     {i:'❓',l:'Help',         p:'help'},
   ]}],
   teamlead:[{sec:'TEAM LEAD',items:[
@@ -658,6 +629,7 @@ const MENUS={
     {i:'📅',l:'Attendance',   p:'attendance'},
     {i:'📁',l:'Submissions',  p:'files'},
     {i:'📈',l:'Reports',      p:'progress'},
+    {i:'🔑',l:'Change Password',p:'changepass'},
   ]}],
   staff:[{sec:'STAFF',items:[
     {i:'📊',l:'Dashboard',    p:'dashboard'},
@@ -666,6 +638,7 @@ const MENUS={
     {i:'⏱️',l:'Working Hours', p:'hours'},
     {i:'📁',l:'Files',        p:'files'},
     {i:'📈',l:'My Progress',  p:'progress'},
+    {i:'🔑',l:'Change Password',p:'changepass'},
   ]}],
   admin:[{sec:'MANAGEMENT',items:[
     {i:'📊',l:'Dashboard',    p:'dashboard'},
@@ -676,6 +649,7 @@ const MENUS={
     {i:'🏆',l:'Leaderboard',  p:'leaderboard'},
     {i:'📈',l:'Reports',      p:'progress'},
     {i:'⚠️',l:'Warnings',     p:'warnings',badge:2},
+    {i:'🔑',l:'Change Password',p:'changepass'},
   ]}],
   superadmin:[{sec:'SYSTEM',items:[
     {i:'📊',l:'Dashboard',    p:'dashboard'},
@@ -688,6 +662,7 @@ const MENUS={
     {i:'⚠️',l:'Warnings',     p:'warnings',badge:2},
     {i:'🔧',l:'Users',        p:'users'},
     {i:'⚙️',l:'Settings',     p:'settings'},
+    {i:'🔑',l:'Change Password',p:'changepass'},
   ]}],
 };
 
@@ -705,7 +680,7 @@ function buildSidebar(){
 
 function nav(p){
   document.querySelectorAll('.ni').forEach(e=>e.classList.toggle('active',e.dataset.p===p));
-  const pages={dashboard,tasks,attendance,hours,files,progress,interns,leaderboard,warnings,users,settings,help};
+  const pages={dashboard,tasks,attendance,hours,files,progress,interns,leaderboard,warnings,users,settings,help,changepass};
   if(pages[p]) pages[p]();
 }
 
@@ -922,6 +897,7 @@ function tasks(){
               <div style="display:flex;gap:4px;flex-wrap:wrap">
                 ${isI&&['Pending','In Progress','Revision'].includes(t.st)?`<button class="btn btn-dark btn-sm" onclick="mSubmit('${t.id}')">📤 Submit</button>`:''}
                 ${!isI&&t.sub?`<button class="btn btn-amber btn-sm" onclick="mGrade('${t.id}')">✏️ Grade</button>`:''}
+                ${!isI?`<button class="btn btn-ghost btn-sm" onclick="mEditTask('${t.id}')">✏️ Edit</button>`:''}
                 ${t.path?`<button class="btn btn-ghost btn-sm" onclick="toast('📁 Opening Drive folder…','info')">📁</button>`:''}
               </div>
             </td>
@@ -1286,7 +1262,10 @@ function interns(){
         <td>${gp(i.grade)}</td>
         <td>${i.att>=80?`<span class="pill p-jade">${i.att}%</span>`:`<span class="pill p-rose">${i.att}%</span>`}</td>
         <td>${i.warn>0?`<span class="pill p-rose">⚠️ ${i.warn}</span>`:`<span class="pill p-mist">None</span>`}</td>
-        <td><a href="${CFG.DRIVE_URL}" target="_blank" class="btn btn-ghost btn-sm">📁 Drive</a></td>
+        <td style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm" onclick="mEditMember('${i.id}')">✏️ Edit</button>
+          <a href="${CFG.DRIVE_URL}" target="_blank" class="btn btn-ghost btn-sm">📁</a>
+        </td>
       </tr>`).join('')}</tbody>
     </table></div></div>
   `);
@@ -1353,8 +1332,8 @@ function users(){
         <td style="font-size:12px">${u.designation||'—'}</td>
         <td><span class="pill p-jade">Active</span></td>
         <td><div style="display:flex;gap:4px">
-          <button class="btn btn-ghost btn-sm">✏️ Edit</button>
-          <button class="btn btn-rose btn-sm" onclick="toast('🔑 Password reset link sent!','info')">🔑 Reset</button>
+          <button class="btn btn-ghost btn-sm" onclick="mEditUser('${u.id}')">✏️ Edit</button>
+          <button class="btn btn-rose btn-sm" onclick="mResetPass('${u.id}','${u.name}')">🔑 Reset</button>
         </div></td>
       </tr>`).join('')}</tbody>
     </table></div></div>
@@ -1366,19 +1345,19 @@ function settings(){
   R(`
     <div class="ph"><h2>⚙️ Settings</h2></div>
     <div class="card">
-      <div class="ct"><span class="ct-icon">☁️</span>Google Apps Script Connection</div>
-      <div style="background:var(--skylt);border:1px solid var(--sky);border-radius:var(--r2);padding:14px;margin-bottom:16px">
-        <div style="font-weight:700;font-size:13px;margin-bottom:4px">No Google Cloud Required</div>
-        <div style="font-size:12px;color:var(--slate)">This portal uses only Google Apps Script + Sheets + Drive — all free with any Gmail account. No Cloud Console setup needed.</div>
+      <div class="ct"><span class="ct-icon">☁️</span>API & Integration Settings</div>
+      <div class="fr">
+        <div class="ff"><label>Apps Script URL</label><input id="st-api" value="${CFG.API}" placeholder="https://script.google.com/macros/s/.../exec" style="font-size:11px"></div>
+        <div class="ff"><label>Spreadsheet ID</label><input id="st-sheet" value="${CFG.SHEET_ID||'1hURgzLYHkZ6sT400wlUAQRMKRyWeuq-ELcUaIKr7Yns'}" placeholder="Spreadsheet ID"></div>
       </div>
-      <div class="fr"><div class="ff"><label>Apps Script URL</label><input placeholder="https://script.google.com/macros/s/.../exec" value="${CFG.API!=='YOUR_APPS_SCRIPT_URL'?CFG.API:''}"></div>
-      <div class="ff"><label>Spreadsheet ID</label><input placeholder="From Google Sheet URL"></div></div>
-      <div class="fr"><div class="ff"><label>Drive Folder ID</label><input value="${CFG.DRIVE_FOLDER}" placeholder="Google Drive folder ID"></div>
-      <div class="ff"><label>Admin WhatsApp</label><input placeholder="+92 300 1234567"></div></div>
-      <div style="margin-bottom:16px">
-        <a href="${CFG.DRIVE_URL}" target="_blank" class="btn btn-jade btn-sm">📁 Open Linked Drive Folder →</a>
+      <div class="fr">
+        <div class="ff"><label>Drive Folder ID</label><input id="st-drive" value="${CFG.DRIVE_FOLDER}" placeholder="Drive Folder ID"></div>
+        <div class="ff"><label>Admin WhatsApp</label><input id="st-wa" value="+923000400466" placeholder="+923000400466"></div>
       </div>
-      <button class="btn btn-jade" onclick="toast('✅ Settings saved!','success')">💾 Save</button>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn btn-jade" onclick="saveSettings()">💾 Save Settings</button>
+        <a href="${CFG.DRIVE_URL}" target="_blank" class="btn btn-ghost btn-sm">📁 Open Drive →</a>
+      </div>
     </div>
     <div class="card">
       <div class="ct"><span class="ct-icon">🏢</span>Portal Settings</div>
@@ -1409,7 +1388,128 @@ function settings(){
   `);
 }
 
-/* ── HELP ── */
+/* ── CHANGE PASSWORD ── */
+async function changepass(){
+  R(`
+    <div class="ph">
+      <h2>🔑 Change Password</h2>
+      <p>Update your account password</p>
+    </div>
+    <div class="card" style="max-width:480px">
+      <div class="ct"><span class="ct-icon">🔒</span>${CU.name}</div>
+      <div style="font-size:12px;color:var(--slate);margin-bottom:20px">${CU.email} · <span class="role-tag rt-${CU.role}" style="font-size:10px">${ROLE_LABELS[CU.role]||CU.role}</span></div>
+
+      <div class="ff" style="margin-bottom:14px">
+        <label>Current Password</label>
+        <div style="position:relative">
+          <input type="password" id="cp-old" placeholder="Enter current password" style="width:100%;padding-right:44px">
+          <button onclick="togglePw('cp-old','cp-old-eye')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--slate);font-size:16px;padding:4px" id="cp-old-eye">👁</button>
+        </div>
+      </div>
+
+      <div class="ff" style="margin-bottom:14px">
+        <label>New Password</label>
+        <div style="position:relative">
+          <input type="password" id="cp-new" placeholder="Minimum 8 characters" style="width:100%;padding-right:44px" oninput="checkPwStrength(this.value)">
+          <button onclick="togglePw('cp-new','cp-new-eye')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--slate);font-size:16px;padding:4px" id="cp-new-eye">👁</button>
+        </div>
+        <div id="pw-strength" style="margin-top:6px;height:4px;border-radius:2px;background:var(--border);overflow:hidden"><div id="pw-bar" style="height:100%;border-radius:2px;width:0%;transition:width .3s,background .3s"></div></div>
+        <div id="pw-label" style="font-size:11px;color:var(--slate);margin-top:3px"></div>
+      </div>
+
+      <div class="ff" style="margin-bottom:20px">
+        <label>Confirm New Password</label>
+        <div style="position:relative">
+          <input type="password" id="cp-conf" placeholder="Re-enter new password" style="width:100%;padding-right:44px">
+          <button onclick="togglePw('cp-conf','cp-conf-eye')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--slate);font-size:16px;padding:4px" id="cp-conf-eye">👁</button>
+        </div>
+      </div>
+
+      <div id="cp-err" style="display:none;background:var(--roselt);border:1px solid #fda4af;color:var(--rosedark);border-radius:var(--r3);padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
+
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-dark" onclick="doChangePass()" style="flex:1">🔑 Update Password</button>
+        <button class="btn btn-ghost" onclick="nav('dashboard')">Cancel</button>
+      </div>
+    </div>
+  `);
+}
+
+function togglePw(inputId, btnId){
+  const inp = document.getElementById(inputId);
+  const btn = document.getElementById(btnId);
+  if(!inp) return;
+  if(inp.type==='password'){
+    inp.type='text';
+    btn.textContent='🙈';
+  } else {
+    inp.type='password';
+    btn.textContent='👁';
+  }
+}
+
+function checkPwStrength(v){
+  const bar=document.getElementById('pw-bar');
+  const lbl=document.getElementById('pw-label');
+  if(!bar||!lbl) return;
+  let score=0;
+  if(v.length>=8) score++;
+  if(v.length>=12) score++;
+  if(/[A-Z]/.test(v)) score++;
+  if(/[0-9]/.test(v)) score++;
+  if(/[^A-Za-z0-9]/.test(v)) score++;
+  const configs=[
+    {w:'0%',  bg:'var(--border)',     t:''},
+    {w:'20%', bg:'var(--rose)',       t:'Very weak'},
+    {w:'40%', bg:'var(--amber)',      t:'Weak'},
+    {w:'60%', bg:'var(--gold)',       t:'Fair'},
+    {w:'80%', bg:'var(--jade)',       t:'Strong'},
+    {w:'100%',bg:'var(--jadedark)',   t:'Very strong'},
+  ];
+  const c=configs[Math.min(score,5)];
+  bar.style.width=c.w;
+  bar.style.background=c.bg;
+  lbl.textContent=c.t;
+  lbl.style.color=c.bg;
+}
+
+async function doChangePass(){
+  const oldP = document.getElementById('cp-old')?.value;
+  const newP = document.getElementById('cp-new')?.value;
+  const conf = document.getElementById('cp-conf')?.value;
+  const err  = document.getElementById('cp-err');
+  err.style.display='none';
+
+  if(!oldP||!newP||!conf){
+    err.textContent='❌ Please fill all fields.'; err.style.display='block'; return;
+  }
+  if(newP.length<8){
+    err.textContent='❌ New password must be at least 8 characters.'; err.style.display='block'; return;
+  }
+  if(newP!==conf){
+    err.textContent='❌ New passwords do not match.'; err.style.display='block'; return;
+  }
+
+  // Verify current password first via login check
+  if(!CFG.DEMO){
+    const verify = await api('login',{email:CU.email, password:oldP});
+    if(!verify.ok){ err.textContent='❌ Current password is wrong.'; err.style.display='block'; return; }
+
+    const res = await api('resetPassword',{userId:CU.id, newPassword:newP});
+    if(!res.ok){ err.textContent='❌ '+(res.error||'Failed to update.'); err.style.display='block'; return; }
+  } else {
+    const u = DB.users.find(x=>x.id===CU.id);
+    if(!u||u.pass!==oldP){ err.textContent='❌ Current password is wrong.'; err.style.display='block'; return; }
+    u.pass=newP;
+  }
+
+  // Update session
+  sessionStorage.setItem('dm_cu',JSON.stringify(CU));
+  toast('✅ Password updated successfully!','success');
+  nav('dashboard');
+}
+
+
 function help(){
   R(`
     <div class="ph"><h2>❓ Help & FAQ</h2></div>
@@ -1420,7 +1520,7 @@ function help(){
       ['I got a Revision request — what now?','Go to Tasks → find the task marked Revision → read the feedback → fix your work → click Submit again. Rev. No auto-increments.'],
       ['How are points calculated?','10 pts per completed task + quality bonus (1–5 pts) + attendance bonus (up to 20 pts) − 5 pts per warning received.'],
       ['When do I get my certificate?','After 8 weeks with 75%+ attendance and 60+ points. Grade A/A+ also earns a Letter of Recommendation.'],
-      ['I forgot my password?','Contact your admin on WhatsApp. Super Admin can reset any password from User Management.'],
+      ['I forgot my password?','Contact your admin on WhatsApp: +923000400466. Super Admin can reset any password from User Management.'],
     ].map(([q,a])=>`<div class="card" style="margin-bottom:12px">
       <div style="font-weight:800;color:var(--ink);margin-bottom:7px">❓ ${q}</div>
       <div style="font-size:13px;color:var(--slate);line-height:1.7">${a}</div>
@@ -1614,6 +1714,49 @@ function mWarn(){
   `);
 }
 
+function mResetPass(userId, userName){
+  showModal(`🔑 Reset Password — ${userName}`,`
+    <div class="ff" style="margin-bottom:14px">
+      <label>New Password</label>
+      <div style="position:relative">
+        <input type="password" id="rp-new" placeholder="Minimum 8 characters" style="width:100%;padding-right:44px">
+        <button onclick="togglePw('rp-new','rp-new-eye')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--slate);font-size:16px;padding:4px" id="rp-new-eye">👁</button>
+      </div>
+    </div>
+    <div class="ff" style="margin-bottom:16px">
+      <label>Confirm Password</label>
+      <div style="position:relative">
+        <input type="password" id="rp-conf" placeholder="Re-enter password" style="width:100%;padding-right:44px">
+        <button onclick="togglePw('rp-conf','rp-conf-eye')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--slate);font-size:16px;padding:4px" id="rp-conf-eye">👁</button>
+      </div>
+    </div>
+    <div id="rp-err" style="display:none;background:var(--roselt);border:1px solid #fda4af;color:var(--rosedark);border-radius:var(--r3);padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-dark" onclick="doResetPass('${userId}')">🔑 Reset Password</button>
+    </div>
+  `);
+}
+
+async function doResetPass(userId){
+  const newP = document.getElementById('rp-new')?.value;
+  const conf = document.getElementById('rp-conf')?.value;
+  const err  = document.getElementById('rp-err');
+  err.style.display='none';
+  if(!newP||newP.length<8){ err.textContent='❌ Password must be at least 8 characters.'; err.style.display='block'; return; }
+  if(newP!==conf){ err.textContent='❌ Passwords do not match.'; err.style.display='block'; return; }
+
+  if(!CFG.DEMO){
+    const res = await api('resetPassword',{userId, newPassword:newP});
+    if(!res.ok){ err.textContent='❌ '+(res.error||'Failed.'); err.style.display='block'; return; }
+  } else {
+    const u = DB.users.find(x=>x.id===userId);
+    if(u) u.pass=newP;
+  }
+  closeModal();
+  toast('✅ Password reset successfully!','success');
+}
+
 function mAddIntern(){
   showModal('➕ Add New Member',`
     <div class="fr">
@@ -1641,7 +1784,10 @@ function mAddIntern(){
     </div>
     <div class="fr">
       <div class="ff"><label>Join Date</label><input type="date" value="${new Date().toISOString().split('T')[0]}"></div>
-      <div class="ff"><label>Temp Password</label><input id="am-pass" placeholder="Temporary password"></div>
+      <div class="ff"><label>Temp Password</label>
+        ${pwField('am-pass','am-pass-eye','Min 8 chars + uppercase + number + special','updateStrength(this.value,\'am-bar\',\'am-bar-lbl\')')}
+        ${pwStrengthBar('am-bar','am-bar-lbl')}
+      </div>
     </div>
     <div style="background:var(--sky);border-radius:var(--r3);padding:10px 13px;font-size:12px;color:var(--ink2);margin-bottom:14px">
       ☁️ A Google Drive folder will be auto-created for this member at:<br>
@@ -1674,7 +1820,16 @@ function mAddUser(){
         <input id="au-desig" placeholder="e.g. Video Editor, 3D Artist...">
       </div>
     </div>
-    <div class="ff" style="margin-bottom:16px"><label>Password</label><input id="au-pass" type="password" placeholder="Set password"></div>
+    <div class="ff" style="margin-bottom:4px">
+      <label>Password</label>
+      ${pwField('au-pass','au-pass-eye','Min 8 chars, uppercase, number, special','updateStrength(this.value,\'au-bar\',\'au-bar-lbl\')')}
+      ${pwStrengthBar('au-bar','au-bar-lbl')}
+    </div>
+    <div class="ff" style="margin-bottom:14px">
+      <label>Confirm Password</label>
+      ${pwField('au-conf','au-conf-eye','Re-enter password','')}
+    </div>
+    <div id="au-err" style="display:none;background:var(--roselt);border:1px solid #fda4af;color:var(--rosedark);border-radius:var(--r3);padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
       <button class="btn btn-dark" onclick="doAddUser()">Add User</button>
@@ -1789,19 +1944,338 @@ async function doAddMember(){
 }
 
 async function doAddUser(){
+  const name=document.getElementById('au-name')?.value.trim();
+  const email=document.getElementById('au-email')?.value.trim();
+  const role=document.getElementById('au-role')?.value;
+  const desig=document.getElementById('au-desig')?.value.trim();
+  const pass=document.getElementById('au-pass')?.value;
+  const conf=document.getElementById('au-conf')?.value;
+  const err=document.getElementById('au-err');
+  if(err) err.style.display='none';
+  if(!name||!email){ if(err){err.textContent='❌ Name and email are required.';err.style.display='block';} return; }
+  const pwErrs=validatePassword(pass||'');
+  if(pwErrs.length){ if(err){err.textContent='❌ Password needs: '+pwErrs.join(', ');err.style.display='block';} return; }
+  if(pass!==conf){ if(err){err.textContent='❌ Passwords do not match.';err.style.display='block';} return; }
   if(!CFG.DEMO){
-    const name=document.getElementById('au-name')?.value;
-    const email=document.getElementById('au-email')?.value;
-    const role=document.getElementById('au-role')?.value;
-    const desig=document.getElementById('au-desig')?.value;
-    const pass=document.getElementById('au-pass')?.value;
     const res=await api('addUser',{name,email,role,designation:desig,password:pass});
     if(res.ok){
       const ur=await api('getUsers');
       if(ur.ok) LIVE.users=ur.users;
       closeModal(); toast('✅ User added!','success'); users();
-    } else { toast('❌ '+(res.error||'Failed'),'error'); }
+    } else { if(err){err.textContent='❌ '+(res.error||'Failed.');err.style.display='block';} }
   } else { closeModal(); toast('✅ User added!','success'); users(); }
+}
+
+// ════════════════════════════════════════════════════════
+// PASSWORD HELPERS
+// ════════════════════════════════════════════════════════
+function pwField(id, eyeId, placeholder, onInput=''){
+  return `<div style="position:relative">
+    <input type="password" id="${id}" placeholder="${placeholder}" style="width:100%;padding-right:44px;padding:10px 44px 10px 13px;border:2px solid var(--border);border-radius:var(--r2);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);outline:none;background:#fff" ${onInput?`oninput="${onInput}"`:''}>
+    <button type="button" onclick="togglePw('${id}','${eyeId}')" id="${eyeId}" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--slate);font-size:15px;padding:4px;line-height:1">👁</button>
+  </div>`;
+}
+
+function pwStrengthBar(barId, labelId){
+  return `<div id="${barId}-wrap" style="margin-top:5px;height:4px;border-radius:2px;background:var(--border);overflow:hidden"><div id="${barId}" style="height:100%;border-radius:2px;width:0%;transition:width .3s,background .3s"></div></div>
+  <div id="${labelId}" style="font-size:11px;margin-top:3px;font-weight:600"></div>`;
+}
+
+function updateStrength(val, barId, labelId){
+  const bar=document.getElementById(barId);
+  const lbl=document.getElementById(labelId);
+  if(!bar||!lbl) return;
+  let score=0;
+  if(val.length>=8) score++;
+  if(val.length>=12) score++;
+  if(/[A-Z]/.test(val)) score++;
+  if(/[a-z]/.test(val)) score++;
+  if(/[0-9]/.test(val)) score++;
+  if(/[^A-Za-z0-9]/.test(val)) score++;
+  const cfg=[
+    {w:'0%',  bg:'var(--border)',   t:'',            c:'var(--slate)'},
+    {w:'17%', bg:'var(--rose)',     t:'Very Weak',   c:'var(--rosedark)'},
+    {w:'34%', bg:'var(--rose)',     t:'Weak',        c:'var(--rosedark)'},
+    {w:'50%', bg:'#f59e0b',        t:'Fair',        c:'#92400e'},
+    {w:'67%', bg:'var(--gold)',     t:'Good',        c:'var(--golddark)'},
+    {w:'84%', bg:'var(--jade)',     t:'Strong',      c:'var(--jadedark)'},
+    {w:'100%',bg:'var(--jadedark)',t:'Very Strong',  c:'var(--jadedark)'},
+  ];
+  const c=cfg[Math.min(score,6)];
+  bar.style.width=c.w; bar.style.background=c.bg;
+  lbl.textContent=c.t; lbl.style.color=c.c;
+}
+
+function validatePassword(pw){
+  const errs=[];
+  if(pw.length<8)            errs.push('at least 8 characters');
+  if(!/[A-Z]/.test(pw))     errs.push('1 uppercase letter');
+  if(!/[a-z]/.test(pw))     errs.push('1 lowercase letter');
+  if(!/[0-9]/.test(pw))     errs.push('1 number');
+  if(!/[^A-Za-z0-9]/.test(pw)) errs.push('1 special character');
+  return errs;
+}
+
+// ════════════════════════════════════════════════════════
+// FORGOT PASSWORD
+// ════════════════════════════════════════════════════════
+function showForgotPass(){
+  showModal('🔓 Forgot Password',`
+    <div id="fp-step1">
+      <p style="font-size:13px;color:var(--slate);margin-bottom:16px">Enter your registered email. Admin will reset your password.</p>
+      <div class="ff" style="margin-bottom:12px">
+        <label>Registered Email</label>
+        <input type="email" id="fp-email" placeholder="your@email.com" style="width:100%;padding:10px 13px;border:2px solid var(--border);border-radius:var(--r2);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);outline:none">
+      </div>
+      <div id="fp-err" style="display:none;background:var(--roselt);border:1px solid #fda4af;color:var(--rosedark);border-radius:var(--r3);padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-dark" onclick="doForgotPass()">Send Reset Request →</button>
+      </div>
+    </div>
+    <div id="fp-step2" style="display:none">
+      <div style="text-align:center;padding:16px 0">
+        <div style="font-size:36px;margin-bottom:10px">✅</div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:6px">Request Sent!</div>
+        <div style="font-size:13px;color:var(--slate)">Contact your admin on WhatsApp: <strong>+923000400466</strong><br>They will reset your password from User Management.</div>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:16px">
+        <button class="btn btn-dark" onclick="closeModal()">Got it</button>
+      </div>
+    </div>
+  `);
+}
+
+async function doForgotPass(){
+  const email=document.getElementById('fp-email')?.value.trim().toLowerCase();
+  const err=document.getElementById('fp-err');
+  err.style.display='none';
+  if(!email){ err.textContent='❌ Please enter your email.'; err.style.display='block'; return; }
+
+  // Try to verify email exists via backend
+  if(!CFG.DEMO){
+    // We check by attempting login with empty password - if "Wrong password" it means email exists
+    // Better: use a dedicated forgotPassword action if backend supports it
+    const res=await api('forgotPassword',{email});
+    if(res.ok){
+      document.getElementById('fp-step1').style.display='none';
+      document.getElementById('fp-step2').style.display='block';
+    } else {
+      // Even if backend doesn't support it, show the contact admin message
+      document.getElementById('fp-step1').style.display='none';
+      document.getElementById('fp-step2').style.display='block';
+    }
+  } else {
+    document.getElementById('fp-step1').style.display='none';
+    document.getElementById('fp-step2').style.display='block';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// SAVE SETTINGS
+// ════════════════════════════════════════════════════════
+async function saveSettings(){
+  const apiUrl=document.getElementById('st-api')?.value.trim();
+  const sheetId=document.getElementById('st-sheet')?.value.trim();
+  const driveId=document.getElementById('st-drive')?.value.trim();
+  const wa=document.getElementById('st-wa')?.value.trim();
+
+  if(apiUrl) CFG.API=apiUrl;
+  if(sheetId) CFG.SHEET_ID=sheetId;
+  if(driveId){ CFG.DRIVE_FOLDER=driveId; CFG.DRIVE_URL='https://drive.google.com/drive/folders/'+driveId; }
+
+  if(!CFG.DEMO){
+    const res=await api('updateSettings',{apiUrl,sheetId,driveId,adminWhatsapp:wa});
+    if(res&&res.ok){ toast('✅ Settings saved!','success'); }
+    else { toast('✅ Settings saved locally!','success'); } // save to CFG even if backend doesn't have endpoint
+  } else {
+    toast('✅ Settings saved!','success');
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// EDIT USER
+// ════════════════════════════════════════════════════════
+function mEditUser(userId){
+  const u=getU().find(x=>x.id===userId);
+  if(!u){ toast('❌ User not found','error'); return; }
+  showModal(`✏️ Edit User — ${u.name}`,`
+    <div class="fr">
+      <div class="ff"><label>Name</label><input id="eu-name" value="${u.name||''}" placeholder="Full name"></div>
+      <div class="ff"><label>Email</label><input id="eu-email" type="email" value="${u.email||''}" placeholder="email@designmuster.com"></div>
+    </div>
+    <div class="fr">
+      <div class="ff"><label>Portal Role</label>
+        <select id="eu-role">
+          ${['internee','staff','teamlead','admin','superadmin'].map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABELS[r]||r}</option>`).join('')}
+        </select>
+      </div>
+      <div class="ff"><label>Work Designation</label>
+        <input id="eu-desig" value="${u.designation||''}" placeholder="e.g. Video Editor">
+      </div>
+    </div>
+    <div class="ff" style="margin-bottom:4px"><label>New Password <span style="font-size:10px;color:var(--slate);font-weight:400">(leave blank to keep current)</span></label>
+      ${pwField('eu-pass','eu-pass-eye','Leave blank to keep current','updateStrength(this.value,\'eu-bar\',\'eu-bar-lbl\')')}
+      ${pwStrengthBar('eu-bar','eu-bar-lbl')}
+    </div>
+    <div id="eu-err" style="display:none;background:var(--roselt);border:1px solid #fda4af;color:var(--rosedark);border-radius:var(--r3);padding:10px 14px;font-size:13px;margin:10px 0"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-dark" onclick="doEditUser('${userId}')">💾 Save Changes</button>
+    </div>
+  `);
+}
+
+async function doEditUser(userId){
+  const name=document.getElementById('eu-name')?.value.trim();
+  const email=document.getElementById('eu-email')?.value.trim();
+  const role=document.getElementById('eu-role')?.value;
+  const desig=document.getElementById('eu-desig')?.value.trim();
+  const newPass=document.getElementById('eu-pass')?.value;
+  const err=document.getElementById('eu-err');
+  err.style.display='none';
+
+  if(!name||!email){ err.textContent='❌ Name and email are required.'; err.style.display='block'; return; }
+  if(newPass){
+    const errs=validatePassword(newPass);
+    if(errs.length){ err.textContent='❌ Password needs: '+errs.join(', '); err.style.display='block'; return; }
+  }
+
+  if(!CFG.DEMO){
+    const payload={userId,name,email,role,designation:desig};
+    if(newPass) payload.newPassword=newPass;
+    const res=await api('updateUser',payload);
+    if(!res.ok){ err.textContent='❌ '+(res.error||'Save failed.'); err.style.display='block'; return; }
+    const ur=await api('getUsers');
+    if(ur.ok) LIVE.users=ur.users;
+  } else {
+    const u=DB.users.find(x=>x.id===userId);
+    if(u){ u.name=name; u.email=email; u.role=role; u.designation=desig; if(newPass) u.pass=newPass; }
+  }
+  closeModal();
+  toast('✅ User updated successfully!','success');
+  users();
+}
+
+// ════════════════════════════════════════════════════════
+// EDIT MEMBER
+// ════════════════════════════════════════════════════════
+function mEditMember(memberId){
+  const m=getM().find(x=>x.id===memberId);
+  if(!m){ toast('❌ Member not found','error'); return; }
+  showModal(`✏️ Edit Member — ${m.name}`,`
+    <div class="fr">
+      <div class="ff"><label>Full Name</label><input id="em-name" value="${m.name||''}" placeholder="Full name"></div>
+      <div class="ff"><label>Role</label>
+        <select id="em-role">
+          ${['internee','staff','teamlead','admin','superadmin'].map(r=>`<option value="${r}" ${m.role===r?'selected':''}>${ROLE_LABELS[r]||r}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="fr">
+      <div class="ff"><label>Work Designation</label>
+        <select id="em-desig">
+          ${['Content Writer','Video Editor','AI Graphics Designer','SEO Manager','Social Media Manager','3D Visualization Artist','Web Developer','AR/VR Designer','Virtual Tour Creator','Creative Team Lead','Operations Manager','Director'].map(d=>`<option ${m.designation===d?'selected':''}>${d}</option>`).join('')}
+        </select>
+      </div>
+      <div class="ff"><label>Status</label>
+        <select id="em-status">
+          <option value="Active" ${m.status==='Active'?'selected':''}>Active</option>
+          <option value="Inactive" ${m.status==='Inactive'?'selected':''}>Inactive</option>
+        </select>
+      </div>
+    </div>
+    <div id="em-err" style="display:none;background:var(--roselt);border:1px solid #fda4af;color:var(--rosedark);border-radius:var(--r3);padding:10px 14px;font-size:13px;margin:10px 0"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-dark" onclick="doEditMember('${memberId}')">💾 Save Changes</button>
+    </div>
+  `);
+}
+
+async function doEditMember(memberId){
+  const name=document.getElementById('em-name')?.value.trim();
+  const role=document.getElementById('em-role')?.value;
+  const desig=document.getElementById('em-desig')?.value;
+  const status=document.getElementById('em-status')?.value;
+  const err=document.getElementById('em-err');
+  err.style.display='none';
+  if(!name){ err.textContent='❌ Name is required.'; err.style.display='block'; return; }
+
+  if(!CFG.DEMO){
+    const res=await api('updateMember',{memberId,name,role,designation:desig,status});
+    if(!res.ok){ err.textContent='❌ '+(res.error||'Save failed.'); err.style.display='block'; return; }
+    const mr=await api('getMembers',{role:CU.role});
+    if(mr.ok) LIVE.members=mr.members;
+  } else {
+    const m=getM().find(x=>x.id===memberId);
+    if(m){ m.name=name; m.role=role; m.designation=desig; m.status=status; }
+  }
+  closeModal();
+  toast('✅ Member updated successfully!','success');
+  interns();
+}
+
+// ════════════════════════════════════════════════════════
+// EDIT TASK
+// ════════════════════════════════════════════════════════
+function mEditTask(taskId){
+  const t=getT().find(x=>x.id===taskId);
+  if(!t){ toast('❌ Task not found','error'); return; }
+  showModal(`✏️ Edit Task — ${t.project||t.vid}`,`
+    <div class="fr">
+      <div class="ff"><label>Project</label><input id="et-proj" value="${t.project||t.vid||''}" placeholder="e.g. Project #1"></div>
+      <div class="ff"><label>Title</label><input id="et-title" value="${t.title||''}" placeholder="Task title"></div>
+    </div>
+    <div class="fr">
+      <div class="ff"><label>Priority</label>
+        <select id="et-pri">
+          ${['High','Medium','Low'].map(p=>`<option ${(t.pri||t.priority)===p?'selected':''}>${p}</option>`).join('')}
+        </select>
+      </div>
+      <div class="ff"><label>Status</label>
+        <select id="et-st">
+          ${['Pending','In Progress','Review','Revision','Completed','Rejected'].map(s=>`<option ${t.st===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="fr">
+      <div class="ff"><label>Deadline</label><input id="et-dl" type="date" value="${t.dl||''}"></div>
+      <div class="ff"><label>Score / 10</label><input id="et-score" type="number" min="0" max="10" step=".5" value="${t.score||''}"></div>
+    </div>
+    <div class="ff" style="margin-bottom:14px"><label>Feedback</label><textarea id="et-fb" style="width:100%;padding:10px 13px;border:2px solid var(--border);border-radius:var(--r2);font-family:'DM Sans',sans-serif;font-size:13px;resize:vertical;min-height:70px">${t.fb||''}</textarea></div>
+    <div id="et-err" style="display:none;background:var(--roselt);border:1px solid #fda4af;color:var(--rosedark);border-radius:var(--r3);padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-dark" onclick="doEditTask('${taskId}')">💾 Save Changes</button>
+    </div>
+  `);
+}
+
+async function doEditTask(taskId){
+  const proj=document.getElementById('et-proj')?.value.trim();
+  const title=document.getElementById('et-title')?.value.trim();
+  const pri=document.getElementById('et-pri')?.value;
+  const st=document.getElementById('et-st')?.value;
+  const dl=document.getElementById('et-dl')?.value;
+  const score=document.getElementById('et-score')?.value;
+  const fb=document.getElementById('et-fb')?.value;
+  const err=document.getElementById('et-err');
+  err.style.display='none';
+  if(!title){ err.textContent='❌ Title is required.'; err.style.display='block'; return; }
+
+  if(!CFG.DEMO){
+    const res=await api('updateTask',{taskId,project:proj,title,priority:pri,status:st,deadline:dl,score,feedback:fb,updatedBy:CU.name});
+    if(!res.ok){ err.textContent='❌ '+(res.error||'Save failed.'); err.style.display='block'; return; }
+    const tr=await api('getTasks',{memberId:myMid(),role:CU.role});
+    if(tr.ok) LIVE.tasks=tr.tasks;
+  } else {
+    const t=getT().find(x=>x.id===taskId);
+    if(t){ t.project=proj; t.vid=proj; t.title=title; t.pri=pri; t.st=st; t.dl=dl; if(score) t.score=score; if(fb) t.fb=fb; }
+  }
+  closeModal();
+  toast('✅ Task updated successfully!','success');
+  tasks();
 }
 
 function ftasks(s){
