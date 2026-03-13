@@ -368,8 +368,9 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle}
 // CONFIG
 // ════════════════════════════════════════════════════════
 const CFG = {
-  API: "YOUR_APPS_SCRIPT_URL",
-  DEMO: true,
+  API: "https://script.google.com/macros/s/AKfycbzgHfFeigSUezRwctWhHNU3p5qIcnkzDhBcNWzXJlpahkZ3D73YLVfmXrtLYKSPZDPa/exec",
+  DEMO: false,
+  SHEET_ID: "1ZikUg1eg3OM1wbPWYEynMT6048a-oBIsgo5wp4p1cNI",
   DRIVE_FOLDER: "1iVKDVT6q6IbJWj6yj_fXx87aQOao46eQ",
   DRIVE_URL: "https://drive.google.com/drive/folders/1iVKDVT6q6IbJWj6yj_fXx87aQOao46eQ",
 };
@@ -426,18 +427,90 @@ const DB = {
 };
 
 // ════════════════════════════════════════════════════════
-// CLOCK STATE
-// ════════════════════════════════════════════════════════
-let clockState = JSON.parse(sessionStorage.getItem('clockState')||'{}');
-// {iid, status:"in"|"out", cinTime:timestamp, elapsed:seconds}
-
-// ════════════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════════════
 let CU = null;
-// role auto-detected from login
 let clockInterval = null;
 let liveClockInterval = null;
+let clockState = JSON.parse(sessionStorage.getItem('clockState')||'{}');
+
+// Live data cache (populated from API)
+let LIVE = { members:[], tasks:[], attendance:[], sessions:[], warnings:[], files:[], users:[] };
+
+// ════════════════════════════════════════════════════════
+// API LAYER
+// ════════════════════════════════════════════════════════
+async function api(action, payload={}) {
+  if(CFG.DEMO) return demoApi(action, payload);
+  try {
+    // Google Apps Script requires text/plain to avoid CORS preflight
+    const res = await fetch(CFG.API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action, userId: CU?.id, ...payload })
+    });
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch(e) { return { ok: false, error: 'Invalid response: ' + text.substring(0,100) }; }
+  } catch(err) {
+    console.error('API error:', action, err);
+    return { ok: false, error: 'Network error. Check connection.' };
+  }
+}
+
+// ── Load all data for current user after login ──────────────────────────
+async function loadLiveData() {
+  const role = CU.role, mid = CU.memberId;
+  const [mRes, tRes, aRes, sRes, wRes, fRes] = await Promise.all([
+    api('getMembers',    { role }),
+    api('getTasks',      { memberId: mid, role }),
+    api('getAttendance', { memberId: mid, role }),
+    api('getSessions',   { memberId: mid, role }),
+    api('getWarnings',   { memberId: mid, role }),
+    api('getFiles',      { memberId: mid, role }),
+  ]);
+  if(mRes.ok) LIVE.members    = mRes.members;
+  if(tRes.ok) LIVE.tasks      = tRes.tasks;
+  if(aRes.ok) LIVE.attendance = aRes.records;
+  if(sRes.ok) LIVE.sessions   = sRes.sessions;
+  if(wRes.ok) LIVE.warnings   = wRes.warnings;
+  if(fRes.ok) LIVE.files      = fRes.files;
+  if(['admin','superadmin'].includes(role)) {
+    const uRes = await api('getUsers');
+    if(uRes.ok) LIVE.users = uRes.users;
+  }
+}
+
+// ── Convert live attendance records to calendar map format ─────────────
+function buildAttMap(memberId) {
+  const map = {};
+  LIVE.attendance.filter(r => r.memberId === memberId).forEach(r => {
+    map[r.dk] = { st: r.st, ts: r.ts, by: r.by };
+  });
+  return map;
+}
+
+// ── Convert live sessions to array for a member ────────────────────────
+function buildSessions(memberId) {
+  return LIVE.sessions.filter(s => s.memberId === memberId).map(s => ({
+    date: s.dk, day: '', cin: s.cin, cout: s.cout||'',
+    dur: s.dur||'--', tasks: s.tasks||'', note: s.notes||''
+  }));
+}
+
+// ════════════════════════════════════════════════════════
+// DEMO API (fallback when CFG.DEMO = true)
+// ════════════════════════════════════════════════════════
+function demoApi(action, payload) {
+  if(action==='getMembers')    return {ok:true,members:getM()};
+  if(action==='getTasks')      return {ok:true,tasks: payload.role&&['internee','staff'].includes(payload.role) ? getT().filter(t=>tMid(t)===payload.memberId) : getT()};
+  if(action==='getAttendance') return {ok:true,records:[]};
+  if(action==='getSessions')   return {ok:true,sessions:[]};
+  if(action==='getWarnings')   return {ok:true,warnings:getW()};
+  if(action==='getFiles')      return {ok:true,files:[]};
+  if(action==='getUsers')      return {ok:true,users:getU()};
+  return {ok:true};
+}
 
 // ════════════════════════════════════════════════════════
 // INIT
@@ -446,10 +519,10 @@ window.onload = () => {
   setTimeout(()=>{
     document.getElementById('loader').style.opacity='0';
     document.getElementById('loader').style.transition='opacity .4s';
-    setTimeout(()=>{
+    setTimeout(async ()=>{
       document.getElementById('loader').classList.add('hidden');
       const s = sessionStorage.getItem('dm_cu');
-      if(s){ CU=JSON.parse(s); launch(); }
+      if(s){ CU=JSON.parse(s); await loadLiveData(); launch(); }
       else show('loginPage');
     },400);
   },1800);
@@ -477,19 +550,36 @@ function startLiveClock(){
 // ════════════════════════════════════════════════════════
 // AUTH
 // ════════════════════════════════════════════════════════
-function doLogin(){
-  const email=document.getElementById('lemail').value.trim().toLowerCase();
-  const pass =document.getElementById('lpass').value;
-  const err  =document.getElementById('lerr');
+async function doLogin(){
+  const email = document.getElementById('lemail').value.trim().toLowerCase();
+  const pass  = document.getElementById('lpass').value;
+  const err   = document.getElementById('lerr');
+  const btn   = document.querySelector('.btn-signin');
   err.style.display='none';
-  const user = DB.users.find(u=>u.email===email && u.pass===pass);
-  if(!user){ err.textContent='❌ Wrong email or password.'; err.style.display='block'; return; }
-  CU=user; sessionStorage.setItem('dm_cu',JSON.stringify(CU));
-  hide('loginPage'); launch();
+  if(!email||!pass){ err.textContent='Please enter email and password.'; err.style.display='block'; return; }
+  btn.textContent='Signing in…'; btn.disabled=true;
+
+  if(CFG.DEMO){
+    const user=getU().find(u=>u.email===email&&u.pass===pass);
+    if(!user){ err.textContent='❌ Wrong email or password.'; err.style.display='block'; btn.textContent='Sign In →'; btn.disabled=false; return; }
+    CU=user;
+  } else {
+    const res=await api('login',{email,password:pass});
+    if(!res.ok){ err.textContent='❌ '+(res.error||'Wrong email or password.'); err.style.display='block'; btn.textContent='Sign In →'; btn.disabled=false; return; }
+    CU=res.user;
+  }
+
+  sessionStorage.setItem('dm_cu',JSON.stringify(CU));
+  btn.textContent='Loading data…';
+  await loadLiveData();
+  hide('loginPage');
+  launch();
+  btn.textContent='Sign In →'; btn.disabled=false;
 }
 
 function doLogout(){
   sessionStorage.removeItem('dm_cu');
+  LIVE={members:[],tasks:[],attendance:[],sessions:[],warnings:[],files:[],users:[]};
   clockInterval && clearInterval(clockInterval);
   liveClockInterval && clearInterval(liveClockInterval);
   CU=null;
@@ -510,6 +600,29 @@ const AV_COLORS={
   admin:'linear-gradient(135deg,#92400e,#f59e0b)',
   superadmin:'linear-gradient(135deg,#5b21b6,#8b5cf6)'
 };
+
+// ── Live-aware data getters ───────────────────────────────────────────
+function getM(){ return CFG.DEMO ? DB.members  : LIVE.members;  }
+function getT(){ return CFG.DEMO ? DB.tasks    : LIVE.tasks;    }
+function getW(){ return CFG.DEMO ? DB.warnings : LIVE.warnings; }
+function getU(){ return CFG.DEMO ? DB.users    : LIVE.users;    }
+
+function getAttMap(memberId){
+  if(CFG.DEMO) return DB.att[memberId]||{};
+  return buildAttMap(memberId);
+}
+
+function getMySessions(memberId){
+  if(CFG.DEMO) return DB.sessions[memberId]||[];
+  return buildSessions(memberId);
+}
+
+// ── Get memberId for current user ────────────────────────────────────
+function myMid(){ return CFG.DEMO ? myMid() : CU.memberId; }
+function myMember(){
+  const mid = myMid();
+  return getM().find(m=>m.id===mid) || { id:mid, name:CU.name, designation:CU.designation||'', pts:0, grade:'—', att:0, warn:0 };
+}
 
 const ROLE_LABELS={internee:'Internee',teamlead:'Team Lead',staff:'Staff',admin:'Admin',superadmin:'Super Admin'};
 const isInternee=r=>r==='internee'||r==='intern';
@@ -604,14 +717,18 @@ function nav(p){
 function dashboard(){ isInternee(CU.role)||CU.role==='staff'?dashI():dashA(); }
 
 function dashI(){
-  const me=DB.members.find(i=>i.id===CU.iid)||DB.members[0];
-  const mt=DB.tasks.filter(t=>t.iid===me.id);
-  const done=mt.filter(t=>t.st==='Completed').length;
-  const rev=mt.filter(t=>t.st==='Revision').length;
-  const todayK=fmtDateKey(new Date());
-  const todayAtt=DB.att[me.id]?.[todayK];
-  const cs=clockState[me.id];
-  const isClockedIn=cs&&cs.status==='in';
+  const me = CFG.DEMO
+    ? (getM().find(i=>i.id===myMid())||getM()[0])
+    : (LIVE.members.find(i=>i.id===CU.memberId)||{id:CU.memberId,name:CU.name,designation:CU.designation,pts:0,grade:'—',att:0,warn:0});
+  const mid = me.id;
+  const mt = CFG.DEMO ? getT().filter(t=>tMid(t)===mid) : LIVE.tasks.filter(t=>t.memberId===mid);
+  const done = mt.filter(t=>t.st==='Completed').length;
+  const rev  = mt.filter(t=>t.st==='Revision').length;
+  const todayK = fmtDateKey(new Date());
+  const attMap = CFG.DEMO ? (DB.att[mid]||{}) : buildAttMap(mid);
+  const todayAtt = attMap[todayK];
+  const cs = clockState[mid];
+  const isClockedIn = cs&&cs.status==='in';
 
   R(`
     <div class="ph">
@@ -697,9 +814,12 @@ function dashI(){
 }
 
 function dashA(){
-  const tot=DB.members.length;
-  const avgA=Math.round(DB.members.reduce((s,i)=>s+i.att,0)/tot);
-  const avgP=Math.round(DB.members.reduce((s,i)=>s+i.pts,0)/tot);
+  const members = CFG.DEMO ? getM()  : LIVE.members;
+  const tasks   = CFG.DEMO ? getT()    : LIVE.tasks;
+  const warnings= CFG.DEMO ? getW() : LIVE.warnings;
+  const tot  = members.length||1;
+  const avgA = Math.round(members.reduce((s,i)=>s+(i.att||0),0)/tot);
+  const avgP = Math.round(members.reduce((s,i)=>s+(i.pts||0),0)/tot);
   const roleLabel=ROLE_LABELS[CU.role]||CU.role;
   R(`
     <div class="ph">
@@ -708,11 +828,11 @@ function dashA(){
     </div>
     <div class="kg">
       ${kc('👥',tot,'Team Members','Active','')}
-      ${kc('✅',DB.tasks.filter(t=>t.st==='Completed').length,'Tasks Done',`${DB.tasks.length} total`,'')}
-      ${kc('📅',avgA+'%','Avg Attendance',`${DB.members.filter(i=>i.att>=80).length}/${tot} good`,avgA>=80?'var(--jade)':'var(--rose)')}
+      ${kc('✅',tasks.filter(t=>t.st==='Completed').length,'Tasks Done',`${tasks.length} total`,'')}
+      ${kc('📅',avgA+'%','Avg Attendance',`${members.filter(i=>(i.att||0)>=80).length}/${tot} good`,avgA>=80?'var(--jade)':'var(--rose)')}
       ${kc('🏅',avgP,'Avg Points','Out of 100','')}
-      ${kc('🔄',DB.tasks.filter(t=>t.st==='Revision').length,'Revisions','Pending','var(--violet)')}
-      ${kc('⚠️',DB.warnings.length,'Warnings','Active','var(--rose)')}
+      ${kc('🔄',tasks.filter(t=>t.st==='Revision').length,'Revisions','Pending','var(--violet)')}
+      ${kc('⚠️',warnings.length,'Warnings','Active','var(--rose)')}
     </div>
     <div class="drive-strip">
       <span style="font-size:20px">☁️</span>
@@ -722,7 +842,7 @@ function dashA(){
     <div class="g2" style="margin-bottom:18px">
       <div class="card">
         <div class="ct"><span class="ct-icon">🏅</span>Points</div>
-        ${DB.members.map(i=>`<div class="cbar">
+        ${getM().map(i=>`<div class="cbar">
           <div class="cbar-name">${i.name.split(' ')[0]}</div>
           <div class="cbar-track"><div class="cbar-fill" style="width:${i.pts}%;background:${i.pts>=80?'var(--jade)':i.pts>=60?'var(--gold)':'var(--rose)'}"></div></div>
           <div class="cbar-val">${i.pts}</div>
@@ -730,7 +850,7 @@ function dashA(){
       </div>
       <div class="card">
         <div class="ct"><span class="ct-icon">📅</span>Attendance</div>
-        ${DB.members.map(i=>`<div class="cbar">
+        ${getM().map(i=>`<div class="cbar">
           <div class="cbar-name">${i.name.split(' ')[0]}</div>
           <div class="cbar-track"><div class="cbar-fill" style="width:${i.att}%;background:${i.att>=80?'var(--jade)':'var(--rose)'}"></div></div>
           <div class="cbar-val">${i.att}%</div>
@@ -743,7 +863,7 @@ function dashA(){
       </div></div>
       <div class="tw"><table>
         <thead><tr><th>#</th><th>Name</th><th>Role</th><th>Designation</th><th>Points</th><th>Grade</th><th>Att%</th></tr></thead>
-        <tbody>${DB.members.map((i,x)=>`<tr>
+        <tbody>${getM().map((i,x)=>`<tr>
           <td style="color:var(--slate)">${x+1}</td>
           <td><strong>${i.name}</strong></td>
           <td><span class="role-tag rt-${i.role}" style="font-size:10px">${ROLE_LABELS[i.role]||i.role}</span></td>
@@ -760,7 +880,7 @@ function dashA(){
 /* ── TASKS ── */
 function tasks(){
   const isI=isInternee(CU.role)||CU.role==='staff';
-  const mt=isI?DB.tasks.filter(t=>t.iid===CU.iid):DB.tasks;
+  const mt=isI?getT().filter(t=>tMid(t)===myMid()):getT();
   R(`
     <div class="ph">
       <h2>${isI?'📋 My Tasks':'📋 Task Management'}</h2>
@@ -782,7 +902,7 @@ function tasks(){
           <th>Submitted</th><th>Actions</th>
         </tr></thead>
         <tbody>${mt.map(t=>{
-          const intern=DB.members.find(i=>i.id===t.iid);
+          const intern=getM().find(i=>i.id===tMid(t));
           return`<tr>
             <td><strong style="font-size:12px">${t.vid}</strong></td>
             ${!isI?`<td>${intern?.name||''}</td>`:''}
@@ -816,8 +936,9 @@ function tasks(){
 function attendance(){
   const isI=isInternee(CU.role)||CU.role==='staff';
   if(isI){
-    const me=DB.members.find(i=>i.id===CU.iid)||DB.members[0];
-    const amap=DB.att[me.id]||{};
+    const me=myMember();
+    const mid=me.id;
+    const amap=getAttMap(mid)||{};
     const todayK=fmtDateKey(new Date());
     const todayAtt=amap[todayK];
     const days=genJune();
@@ -893,8 +1014,8 @@ function attendance(){
       <div class="ph"><h2>📅 Attendance Register</h2><p>All interns' attendance with timestamps</p></div>
       <div class="card" style="padding:0"><div class="tw"><table>
         <thead><tr><th>Name</th><th>Role</th><th>Present</th><th>Absent</th><th>Leave</th><th>Att%</th><th>Last Marked</th><th>Status</th></tr></thead>
-        <tbody>${DB.members.map(i=>{
-          const a=DB.att[i.id]||{};
+        <tbody>${getM().map(i=>{
+          const a=getAttMap(i.id)||{};
           const pr=Object.values(a).filter(v=>v.st==='Present').length;
           const ab=Object.values(a).filter(v=>v.st==='Absent').length;
           const lv=Object.values(a).filter(v=>v.st==='Leave').length;
@@ -918,11 +1039,11 @@ function attendance(){
 
 /* ── WORKING HOURS ── */
 function hours(){
-  const me=DB.members.find(i=>i.id===CU.iid)||DB.members[0];
+  const me=myMember();
   const iid=me.id;
-  const sessions=DB.sessions[iid]||[];
+  const sessions=getMySessions(iid);
   const weekTotal=sessions.reduce((s,h)=>{
-    const[hh,mm]=h.dur.split('h');
+    const[hh,mm]=(h.dur||'0h 0m').split('h');
     return s+(parseInt(hh)||0)+((parseInt((mm||'0m').replace('m','').trim())||0)/60);
   },0);
   const cs=clockState[iid]||{};
@@ -995,15 +1116,24 @@ function hours(){
 /* ── FILES ── */
 function files(){
   const isI=isInternee(CU.role)||CU.role==='staff';
-  const me=DB.members.find(i=>i.id===CU.iid)||DB.members[0];
-  const fl=[
-    {member:'Ahmed Ali',  file:'script_video1_v1.docx',vid:'Video #1',rev:'v1',date:'10 Jun 14:32',size:'48 KB', st:'Approved', icon:'📄'},
-    {member:'Sara Khan',  file:'edit_video1_v1.mp4',   vid:'Video #1',rev:'v1',date:'12 Jun 18:05',size:'248 MB',st:'Revision', icon:'🎬'},
-    {member:'Sara Khan',  file:'edit_video1_v2.mp4',   vid:'Video #1',rev:'v2',date:'13 Jun 10:12',size:'251 MB',st:'Pending',  icon:'🎬'},
-    {member:'Ali Raza',   file:'thumbs_v1.zip',         vid:'Video #1',rev:'v1',date:'11 Jun 11:20',size:'12 MB', st:'Approved', icon:'📦'},
-    {member:'Umar Farooq',file:'shorts_v1.zip',         vid:'Video #1',rev:'v1',date:'13 Jun 09:45',size:'85 MB', st:'Review',   icon:'🎬'},
+  const me=myMember();
+  // Build file list from live or demo data
+  const liveFiles=CFG.DEMO ? [] : LIVE.files;
+  const demoFiles=[
+    {member:'Ahmed Ali',  file:'script_video1_v1.docx',vid:'Video #1',rev:'v1',date:'10 Jun 14:32',size:'48 KB', st:'Approved', icon:'📄',url:'#'},
+    {member:'Sara Khan',  file:'edit_video1_v1.mp4',   vid:'Video #1',rev:'v1',date:'12 Jun 18:05',size:'248 MB',st:'Revision', icon:'🎬',url:'#'},
+    {member:'Sara Khan',  file:'edit_video1_v2.mp4',   vid:'Video #1',rev:'v2',date:'13 Jun 10:12',size:'251 MB',st:'Pending',  icon:'🎬',url:'#'},
+    {member:'Ali Raza',   file:'thumbs_v1.zip',         vid:'Video #1',rev:'v1',date:'11 Jun 11:20',size:'12 MB', st:'Approved', icon:'📦',url:'#'},
+    {member:'Umar Farooq',file:'shorts_v1.zip',         vid:'Video #1',rev:'v1',date:'13 Jun 09:45',size:'85 MB', st:'Review',   icon:'🎬',url:'#'},
   ];
-  const shown=isI?fl.filter(f=>f.member===me.name):fl;
+  const rawFiles=CFG.DEMO ? demoFiles : liveFiles.map(f=>({
+    member:getM().find(m=>m.id===f.memberId)?.name||f.memberId,
+    file:f.file, vid:f.project, rev:f.rev,
+    date:f.date, size:'—', st:f.st,
+    icon:f.file?.endsWith('.mp4')||f.file?.endsWith('.mov')?'🎬':f.file?.endsWith('.zip')?'📦':f.file?.endsWith('.docx')||f.file?.endsWith('.pdf')?'📄':'🖼️',
+    url:f.url,
+  }));
+  const shown=isI?rawFiles.filter(f=>f.member===me.name):rawFiles;
 
   R(`
     <div class="ph"><h2>📁 ${isI?'My Files':'All Submissions'}</h2>
@@ -1011,7 +1141,7 @@ function files(){
     </div>
     <div class="drive-strip">
       <span style="font-size:20px">☁️</span>
-      <div class="ds-text">Files organize automatically: <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px;font-size:11px">Interns/${isI?me.name:'[Name]'}/[Video#]/filename_v2.ext</code></div>
+      <div class="ds-text">Files organize automatically: <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px;font-size:11px">Members/${isI?me.name:'[Name]'}/[Video#]/filename_v2.ext</code></div>
       <a href="${CFG.DRIVE_URL}" target="_blank" class="ds-link">📁 Open Drive →</a>
     </div>
     ${isI?`
@@ -1054,7 +1184,7 @@ function files(){
           <td><div class="ts-badge" style="font-size:10px"><div class="ts-dot" style="background:var(--jade)"></div>${f.date}</div></td>
           <td style="font-size:11px;color:var(--slate)">${f.size}</td>
           <td>${sp(f.st==='Approved'?'Completed':f.st)}</td>
-          <td><button class="btn btn-ghost btn-sm">📥 View</button></td>
+          <td>${f.url&&f.url!=='#'?`<a href="${f.url}" target="_blank" class="btn btn-ghost btn-sm">📥 View</a>`:`<button class="btn btn-ghost btn-sm" onclick="toast('No file link available','info')">📥 View</button>`}</td>
         </tr>`).join('')}</tbody>
       </table></div>
     </div>
@@ -1065,8 +1195,8 @@ function files(){
 function progress(){
   const isI=isInternee(CU.role)||CU.role==='staff';
   if(isI){
-    const me=DB.members.find(i=>i.id===CU.iid)||DB.members[0];
-    const mt=DB.tasks.filter(t=>t.iid===me.id);
+    const me=myMember();
+    const mt=getT().filter(t=>tMid(t)===me.id);
     const done=mt.filter(t=>t.st==='Completed').length;
     R(`
       <div class="ph"><h2>📈 My Progress</h2><p>Complete performance overview</p></div>
@@ -1121,8 +1251,8 @@ function progress(){
   } else {
     R(`
       <div class="ph"><h2>📈 All Progress Reports</h2></div>
-      ${DB.members.map(i=>{
-        const mt=DB.tasks.filter(t=>t.iid===i.id);
+      ${getM().map(i=>{
+        const mt=getT().filter(t=>tMid(t)===i.id);
         const done=mt.filter(t=>t.st==='Completed').length;
         return`<div class="card" style="border-left:4px solid ${i.grade==='A+'?'var(--jade)':i.grade==='F'?'var(--rose)':'var(--ink3)'}">
           <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
@@ -1147,7 +1277,7 @@ function interns(){
       ${['admin','superadmin'].includes(CU.role)?`<div class="ph-act"><button class="btn btn-dark" onclick="mAddIntern()">➕ Add Member</button></div>`:''}</div>
     <div class="card" style="padding:0"><div class="tw"><table>
       <thead><tr><th>#</th><th>Name</th><th>Role</th><th>Designation</th><th>Points</th><th>Grade</th><th>Att%</th><th>Warnings</th><th>Drive</th></tr></thead>
-      <tbody>${DB.members.map((i,x)=>`<tr>
+      <tbody>${getM().map((i,x)=>`<tr>
         <td style="color:var(--slate)">${x+1}</td>
         <td><strong>${i.name}</strong><br><span style="font-size:10px;color:var(--slate)">Joined ${i.joined}</span></td>
         <td><span class="role-tag rt-${i.role}" style="font-size:10px">${ROLE_LABELS[i.role]||i.role}</span></td>
@@ -1164,7 +1294,7 @@ function interns(){
 
 /* ── LEADERBOARD ── */
 function leaderboard(){
-  const s=[...DB.members].sort((a,b)=>b.pts-a.pts);
+  const s=[...getM()].sort((a,b)=>b.pts-a.pts);
   R(`
     <div class="ph"><h2>🏆 Leaderboard</h2><p>Ranked by total points</p></div>
     <div class="card">
@@ -1193,10 +1323,10 @@ function warnings(){
     </div>
     <div class="card" style="padding:0"><div class="tw"><table>
       <thead><tr><th>Member</th><th>Warning #</th><th>Reason</th><th>Date & Time</th><th>Issued By</th></tr></thead>
-      <tbody>${DB.warnings.map(w=>{
-        const i=DB.members.find(x=>x.id===w.iid);
+      <tbody>${getW().map(w=>{
+        const i=getM().find(x=>x.id===wMid(w));
         return`<tr>
-          <td><strong>${i?.name||w.iid}</strong></td>
+          <td><strong>${i?.name||wMid(w)}</strong></td>
           <td><span class="pill ${w.num>=3?'p-rose':'p-amber'}">⚠️ Warning ${w.num}</span></td>
           <td style="font-size:12px">${w.reason}</td>
           <td><div class="ts-badge" style="font-size:10px"><div class="ts-dot" style="background:var(--rose)"></div>${w.date}</div></td>
@@ -1215,7 +1345,7 @@ function users(){
     </div>
     <div class="card" style="padding:0"><div class="tw"><table>
       <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Designation</th><th>Status</th><th>Actions</th></tr></thead>
-      <tbody>${DB.users.map((u,x)=>`<tr>
+      <tbody>${getU().map((u,x)=>`<tr>
         <td style="color:var(--slate)">${x+1}</td>
         <td><strong>${u.name}</strong></td>
         <td style="font-size:12px;color:var(--slate)">${u.email}</td>
@@ -1301,16 +1431,19 @@ function help(){
 // ════════════════════════════════════════════════════════
 // CLOCK IN / OUT
 // ════════════════════════════════════════════════════════
-function clockIn(iid){
+async function clockIn(iid){
   const now=new Date();
-  clockState[iid]={
-    status:'in',
-    cinTime:now.toLocaleTimeString('en-GB',{hour12:false}),
-    cinStamp:Date.now(),
-    cinDate:fmtDateKey(now),
-  };
+  const cinTime=now.toLocaleTimeString('en-GB',{hour12:false});
+
+  if(!CFG.DEMO){
+    const res=await api('clockIn',{memberId:iid});
+    if(!res.ok){ toast('❌ '+(res.error||'Clock in failed'),'error'); return; }
+  }
+
+  clockState[iid]={status:'in',cinTime,cinStamp:Date.now(),cinDate:fmtDateKey(now)};
   sessionStorage.setItem('clockState',JSON.stringify(clockState));
-  toast('⏵ Clocked in at '+clockState[iid].cinTime,'success');
+  toast('⏵ Clocked in at '+cinTime,'success');
+  if(!CFG.DEMO){ const sr=await api('getSessions',{memberId:iid,role:CU.role}); if(sr.ok) LIVE.sessions=sr.sessions; }
   hours();
 }
 
@@ -1333,24 +1466,26 @@ function mClockOut(iid){
   `);
 }
 
-function doClockOut(iid,diff){
+async function doClockOut(iid,diff){
   const cs=clockState[iid];
   const tasks=document.getElementById('co-tasks')?.value||'—';
   const notes=document.getElementById('co-notes')?.value||'—';
   const coutTime=new Date().toLocaleTimeString('en-GB',{hour12:false});
 
-  // Save session
-  if(!DB.sessions[iid]) DB.sessions[iid]=[];
-  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  DB.sessions[iid].unshift({
-    date:cs.cinDate,
-    day:days[new Date().getDay()],
-    cin:cs.cinTime,
-    cout:coutTime,
-    dur:fmtElapsed(diff),
-    tasks,
-    note:notes,
-  });
+  if(!CFG.DEMO){
+    const res=await api('clockOut',{memberId:iid,tasks,notes});
+    if(!res.ok){ toast('❌ '+(res.error||'Clock out failed'),'error'); return; }
+    // Refresh sessions from server
+    const sr=await api('getSessions',{memberId:iid,role:CU.role});
+    if(sr.ok) LIVE.sessions=sr.sessions;
+  } else {
+    // Demo: save to local DB
+    if(!DB.sessions[iid]) DB.sessions[iid]=[];
+    DB.sessions[iid].unshift({
+      date:cs.cinDate, day:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()],
+      cin:cs.cinTime, cout:coutTime, dur:fmtElapsed(diff), tasks, note:notes,
+    });
+  }
 
   delete clockState[iid];
   sessionStorage.setItem('clockState',JSON.stringify(clockState));
@@ -1362,16 +1497,26 @@ function doClockOut(iid,diff){
 // ════════════════════════════════════════════════════════
 // ATTENDANCE ACTIONS
 // ════════════════════════════════════════════════════════
-function markAtt(iid,dk,status){
-  if(!DB.att[iid]) DB.att[iid]={};
+async function markAtt(iid,dk,status){
   const now=new Date();
   const ts=`${dk} ${now.toLocaleTimeString('en-GB',{hour12:false})}`;
-  DB.att[iid][dk]={st:status,ts,by:'self'};
+
+  if(!CFG.DEMO){
+    const res=await api('markAttendance',{memberId:iid,status,markedBy:'self'});
+    if(!res.ok){ toast('❌ '+(res.error||'Could not mark attendance'),'error'); return; }
+    // Refresh attendance from server
+    const ar=await api('getAttendance',{memberId:iid,role:CU.role});
+    if(ar.ok) LIVE.attendance=ar.records;
+  } else {
+    if(!DB.att[iid]) DB.att[iid]={};
+    DB.att[iid][dk]={st:status,ts,by:'self'};
+  }
+
   toast(`✅ ${status} — recorded at ${ts}`,'success');
   attendance();
 }
 
-function quickAtt(iid,dk){ markAtt(iid,dk,'Present'); }
+async function quickAtt(iid,dk){ await markAtt(iid,dk,'Present'); }
 
 // ════════════════════════════════════════════════════════
 // MODALS
@@ -1383,7 +1528,7 @@ function showModal(title,html){
 function closeModal(){ document.getElementById('mbg').classList.add('hidden'); }
 
 function mSubmit(tid){
-  const t=DB.tasks.find(x=>x.id===tid);
+  const t=getT().find(x=>x.id===tid);
   showModal(`📤 Submit Task`,`
     <div class="fr"><div class="ff"><label>Task</label><input value="${t.title}" readonly style="background:var(--mist)"></div>
     <div class="ff"><label>Rev. No (auto)</label><input value="v${t.rev+1}" readonly style="background:var(--mist)"></div></div>
@@ -1405,8 +1550,8 @@ function mSubmit(tid){
 }
 
 function mGrade(tid){
-  const t=DB.tasks.find(x=>x.id===tid);
-  const member=DB.members.find(i=>i.id===t.iid);
+  const t=getT().find(x=>x.id===tid);
+  const member=getM().find(i=>i.id===tMid(t));
   showModal(`✏️ Grade — ${member?.name} · ${t.vid}`,`
     <div class="fr">
       <div class="ff"><label>Score / 10</label><input type="number" id="gscore" min="0" max="10" step=".5" value="${t.score||''}"></div>
@@ -1434,19 +1579,19 @@ function mAssign(){
   showModal('➕ Assign Task',`
     <div class="fr">
       <div class="ff"><label>Member</label>
-        <select>${DB.members.map(i=>`<option value="${i.id}">${i.name} — ${i.designation}</option>`).join('')}</select>
+        <select id="at-mid">${getM().map(i=>`<option value="${i.id}">${i.name} — ${i.designation}</option>`).join('')}</select>
       </div>
-      <div class="ff"><label>Project #</label><input placeholder="e.g. Project #3"></div>
+      <div class="ff"><label>Project #</label><input id="at-proj" placeholder="e.g. Project #3"></div>
     </div>
-    <div class="ff" style="margin-bottom:12px"><label>Task Title</label><input placeholder="e.g. Full Script — AI Tools"></div>
+    <div class="ff" style="margin-bottom:12px"><label>Task Title</label><input id="at-title" placeholder="e.g. Full Script — AI Tools"></div>
     <div class="fr">
-      <div class="ff"><label>Priority</label><select><option>High</option><option>Medium</option><option>Low</option></select></div>
-      <div class="ff"><label>Deadline</label><input type="date"></div>
+      <div class="ff"><label>Priority</label><select id="at-pri"><option>High</option><option>Medium</option><option>Low</option></select></div>
+      <div class="ff"><label>Deadline</label><input id="at-dl" type="date"></div>
     </div>
-    <div class="ff" style="margin-bottom:16px"><label>Instructions</label><textarea placeholder="Task details..."></textarea></div>
+    <div class="ff" style="margin-bottom:16px"><label>Instructions</label><textarea id="at-instr" placeholder="Task details..."></textarea></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-dark" onclick="closeModal();toast('✅ Task assigned! Drive folder created.','success')">✅ Assign</button>
+      <button class="btn btn-dark" onclick="doAssignTask()">✅ Assign</button>
     </div>
   `);
 }
@@ -1454,17 +1599,17 @@ function mAssign(){
 function mWarn(){
   showModal('⚠️ Issue Warning',`
     <div class="ff" style="margin-bottom:12px"><label>Select Member</label>
-      <select>${DB.members.map(i=>`<option value="${i.id}">${i.name} — ${i.designation} (${i.warn||0} warning${(i.warn||0)!==1?'s':''})</option>`).join('')}</select>
+      <select id="wn-mid">${getM().map(i=>`<option value="${i.id}">${i.name} — ${i.designation} (${i.warn||0} warning${(i.warn||0)!==1?'s':''})</option>`).join('')}</select>
     </div>
     <div class="fr">
-      <div class="ff"><label>Warning #</label><select><option>1</option><option>2</option><option>3 (Final)</option></select></div>
+      <div class="ff"><label>Warning #</label><select id="wn-num"><option>1</option><option>2</option><option>3 (Final)</option></select></div>
       <div class="ff"><label>Date</label><input type="date" value="${new Date().toISOString().split('T')[0]}"></div>
     </div>
-    <div class="ff" style="margin-bottom:12px"><label>Reason</label><textarea placeholder="Reason..."></textarea></div>
+    <div class="ff" style="margin-bottom:12px"><label>Reason</label><textarea id="wn-reason" placeholder="Reason..."></textarea></div>
     <div style="background:var(--roselt);border-radius:var(--r3);padding:10px 13px;font-size:12px;color:var(--rosedark);margin-bottom:14px">⚠️ Warning 3 = automatic review. 5 points will be deducted.</div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-rose" onclick="closeModal();toast('⚠️ Warning issued. 5 pts deducted.','info')">Issue Warning</button>
+      <button class="btn btn-rose" onclick="doIssueWarning()">Issue Warning</button>
     </div>
   `);
 }
@@ -1472,12 +1617,12 @@ function mWarn(){
 function mAddIntern(){
   showModal('➕ Add New Member',`
     <div class="fr">
-      <div class="ff"><label>Full Name</label><input placeholder="Full name"></div>
-      <div class="ff"><label>Email</label><input type="email" placeholder="email@designmuster.com"></div>
+      <div class="ff"><label>Full Name</label><input id="am-name" placeholder="Full name"></div>
+      <div class="ff"><label>Email</label><input id="am-email" type="email" placeholder="email@designmuster.com"></div>
     </div>
     <div class="fr">
       <div class="ff"><label>Portal Role</label>
-        <select>
+        <select id="am-role">
           <option value="internee">Internee</option>
           <option value="staff">Staff</option>
           <option value="teamlead">Team Lead</option>
@@ -1485,7 +1630,7 @@ function mAddIntern(){
         </select>
       </div>
       <div class="ff"><label>Work Designation</label>
-        <select>
+        <select id="am-desig">
           <option>Content Writer</option><option>Video Editor</option><option>AI Graphics Designer</option>
           <option>SEO Manager</option><option>Social Media Manager</option>
           <option>3D Visualization Artist</option><option>Web Developer</option>
@@ -1496,7 +1641,7 @@ function mAddIntern(){
     </div>
     <div class="fr">
       <div class="ff"><label>Join Date</label><input type="date" value="${new Date().toISOString().split('T')[0]}"></div>
-      <div class="ff"><label>Temp Password</label><input placeholder="Temporary password"></div>
+      <div class="ff"><label>Temp Password</label><input id="am-pass" placeholder="Temporary password"></div>
     </div>
     <div style="background:var(--sky);border-radius:var(--r3);padding:10px 13px;font-size:12px;color:var(--ink2);margin-bottom:14px">
       ☁️ A Google Drive folder will be auto-created for this member at:<br>
@@ -1504,7 +1649,7 @@ function mAddIntern(){
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-dark" onclick="closeModal();toast('✅ Member added! Drive folder auto-created.','success')">➕ Add Member</button>
+      <button class="btn btn-dark" onclick="doAddMember()">➕ Add Member</button>
     </div>
   `);
 }
@@ -1512,12 +1657,12 @@ function mAddIntern(){
 function mAddUser(){
   showModal('➕ Add User Account',`
     <div class="fr">
-      <div class="ff"><label>Name</label><input placeholder="Full name"></div>
-      <div class="ff"><label>Email</label><input type="email" placeholder="email@designmuster.com"></div>
+      <div class="ff"><label>Name</label><input id="au-name" placeholder="Full name"></div>
+      <div class="ff"><label>Email</label><input id="au-email" type="email" placeholder="email@designmuster.com"></div>
     </div>
     <div class="fr">
       <div class="ff"><label>Portal Role</label>
-        <select>
+        <select id="au-role">
           <option value="internee">Internee</option>
           <option value="staff">Staff</option>
           <option value="teamlead">Team Lead</option>
@@ -1526,13 +1671,13 @@ function mAddUser(){
         </select>
       </div>
       <div class="ff"><label>Work Designation</label>
-        <input placeholder="e.g. Video Editor, 3D Artist...">
+        <input id="au-desig" placeholder="e.g. Video Editor, 3D Artist...">
       </div>
     </div>
-    <div class="ff" style="margin-bottom:16px"><label>Password</label><input type="password" placeholder="Set password"></div>
+    <div class="ff" style="margin-bottom:16px"><label>Password</label><input id="au-pass" type="password" placeholder="Set password"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-dark" onclick="closeModal();toast('✅ User added!','success')">Add User</button>
+      <button class="btn btn-dark" onclick="doAddUser()">Add User</button>
     </div>
   `);
 }
@@ -1540,23 +1685,123 @@ function mAddUser(){
 // ════════════════════════════════════════════════════════
 // ACTIONS
 // ════════════════════════════════════════════════════════
-function doSubmit(tid){
+// ── Compatibility helpers ─────────────────────────────────────────────
+function tMid(t){ return t.memberId||t.iid||''; }
+function wMid(w){ return w.memberId||w.iid||''; }
+
+async function doSubmit(tid){
   closeModal();
   toast('☁️ Uploading to Google Drive…','info');
-  setTimeout(()=>{
-    const t=DB.tasks.find(x=>x.id===tid);
+
+  if(!CFG.DEMO){
+    // Get file if selected
+    const fi = document.getElementById('mfi');
+    let fileData=null, fileName=null, fileType=null;
+    if(fi&&fi.files[0]){
+      const f=fi.files[0];
+      fileName=f.name; fileType=f.type;
+      fileData=await new Promise(res=>{ const r=new FileReader(); r.onload=e=>res(e.target.result.split(',')[1]); r.readAsDataURL(f); });
+    }
+    const note=document.querySelector('#mcon textarea')?.value||'';
+    const res=await api('submitTask',{taskId:tid,memberId:myMid(),fileData,fileName,fileType,note});
+    if(res.ok){
+      const tr=await api('getTasks',{memberId:myMid(),role:CU.role});
+      if(tr.ok) LIVE.tasks=tr.tasks;
+      toast(`✅ Submitted! Rev.${res.revNo} saved to Drive.`,'success');
+    } else {
+      toast('❌ '+(res.error||'Submit failed'),'error');
+    }
+  } else {
+    const t=getT().find(x=>x.id===tid);
     if(t){t.st='Review';t.rev++;t.sub=new Date().toLocaleString('en-GB',{hour12:false,day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).replace(',',' ');}
     toast('✅ Submitted & saved to Drive!','success');
-    tasks();
-  },1600);
+  }
+  tasks();
 }
 
-function doGrade(tid,status){
+async function doGrade(tid,status){
   closeModal();
-  const t=DB.tasks.find(x=>x.id===tid);
-  if(t){ t.st=status; if(document.getElementById('gfb')) t.fb=document.getElementById('gfb').value; }
-  toast(status==='Completed'?'✅ Task approved!':'🔄 Revision requested.','success');
+  const score=document.getElementById('gscore')?.value||'';
+  const fb=document.getElementById('gfb')?.value||'';
+
+  if(!CFG.DEMO){
+    const res=await api('gradeTask',{taskId:tid,score,status,feedback:fb,gradedBy:CU.name});
+    if(res.ok){
+      const tr=await api('getTasks',{memberId:myMid(),role:CU.role});
+      if(tr.ok) LIVE.tasks=tr.tasks;
+      toast(status==='Completed'?'✅ Task approved!':'🔄 Revision requested.','success');
+    } else { toast('❌ '+(res.error||'Grade failed'),'error'); }
+  } else {
+    const t=getT().find(x=>x.id===tid);
+    if(t){ t.st=status; if(fb) t.fb=fb; }
+    toast(status==='Completed'?'✅ Task approved!':'🔄 Revision requested.','success');
+  }
   tasks();
+}
+
+async function doAssignTask(){
+  if(!CFG.DEMO){
+    const mid=document.getElementById('at-mid')?.value;
+    const proj=document.getElementById('at-proj')?.value;
+    const title=document.getElementById('at-title')?.value;
+    const pri=document.getElementById('at-pri')?.value;
+    const dl=document.getElementById('at-dl')?.value;
+    const instr=document.getElementById('at-instr')?.value;
+    const res=await api('assignTask',{memberId:mid,project:proj,title,priority:pri,deadline:dl,instructions:instr,assignedBy:CU.name});
+    if(res.ok){
+      const tr=await api('getTasks',{memberId:myMid(),role:CU.role});
+      if(tr.ok) LIVE.tasks=tr.tasks;
+      closeModal(); toast('✅ Task assigned! Drive folder created.','success'); tasks();
+    } else { toast('❌ '+(res.error||'Failed'),'error'); }
+  } else { closeModal(); toast('✅ Task assigned!','success'); tasks(); }
+}
+
+async function doIssueWarning(){
+  if(!CFG.DEMO){
+    const mid=document.getElementById('wn-mid')?.value;
+    const num=document.getElementById('wn-num')?.value;
+    const reason=document.getElementById('wn-reason')?.value;
+    const res=await api('issueWarning',{memberId:mid,warningNum:num,reason,issuedBy:CU.name});
+    if(res.ok){
+      const wr=await api('getWarnings',{memberId:myMid(),role:CU.role});
+      if(wr.ok) LIVE.warnings=wr.warnings;
+      const mr=await api('getMembers',{role:CU.role});
+      if(mr.ok) LIVE.members=mr.members;
+      closeModal(); toast('⚠️ Warning issued. 5 pts deducted.','info'); warnings();
+    } else { toast('❌ '+(res.error||'Failed'),'error'); }
+  } else { closeModal(); toast('⚠️ Warning issued.','info'); warnings(); }
+}
+
+async function doAddMember(){
+  if(!CFG.DEMO){
+    const name=document.getElementById('am-name')?.value;
+    const email=document.getElementById('am-email')?.value;
+    const role=document.getElementById('am-role')?.value;
+    const desig=document.getElementById('am-desig')?.value;
+    const pass=document.getElementById('am-pass')?.value;
+    const res=await api('addMember',{name,email,role,designation:desig,password:pass});
+    if(res.ok){
+      const mr=await api('getMembers',{role:CU.role});
+      if(mr.ok) LIVE.members=mr.members;
+      closeModal(); toast('✅ Member added! Drive folder auto-created.','success'); interns();
+    } else { toast('❌ '+(res.error||'Failed'),'error'); }
+  } else { closeModal(); toast('✅ Member added!','success'); interns(); }
+}
+
+async function doAddUser(){
+  if(!CFG.DEMO){
+    const name=document.getElementById('au-name')?.value;
+    const email=document.getElementById('au-email')?.value;
+    const role=document.getElementById('au-role')?.value;
+    const desig=document.getElementById('au-desig')?.value;
+    const pass=document.getElementById('au-pass')?.value;
+    const res=await api('addUser',{name,email,role,designation:desig,password:pass});
+    if(res.ok){
+      const ur=await api('getUsers');
+      if(ur.ok) LIVE.users=ur.users;
+      closeModal(); toast('✅ User added!','success'); users();
+    } else { toast('❌ '+(res.error||'Failed'),'error'); }
+  } else { closeModal(); toast('✅ User added!','success'); users(); }
 }
 
 function ftasks(s){
